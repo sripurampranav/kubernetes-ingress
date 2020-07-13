@@ -160,7 +160,7 @@ jobs:
       - name: Cluster IP
         id: get_cluster
         run: |
-          echo ::set-output name=cluster_ip::$(curl -s https://checkip.amazonaws.com)
+          echo ::set-output name=cluster_ip::$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${{ github.run_id }}-control-plane)
           echo ::set-output name=cluster::$(echo '${{ matrix.image }}-${{ github.run_id }}')
       # - name: Setup Kubeconfig
       #   run: |
@@ -186,6 +186,8 @@ jobs:
       #       --junitxml=tests-${{ steps.get_cluster.outputs.cluster }}.xml
       - name: Run Smoke Tests on ${{ matrix.image }}
         run: |
+          ls -la ${{ github.workspace }}/nginx-ingress
+          chmod +x ${{ github.workspace }}/nginx-ingress
           kubectl create deployment ${{ matrix.image }} --image=${{ matrix.image }}:${{ github.sha }}
           pip install -r requirements.txt
           kubectl describe pod -l=app=${{ matrix.image }}
