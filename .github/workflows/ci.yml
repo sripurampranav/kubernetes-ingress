@@ -105,7 +105,7 @@ jobs:
         run: |
           echo "${CRT}" | base64 --decode > nginx-repo.crt
           echo "${KEY}" | base64 --decode > nginx-repo.key
-      - name: Build Docker Image ${{ matrix.dockerfiles }}
+      - name: Build Docker Image ${{ matrix.image }}
         uses: docker/build-push-action@v1
         with:
           repository: ${{ matrix.image }}
@@ -182,16 +182,17 @@ jobs:
       #       --image-pull-policy=IfNotPresent --ic-type=${{ matrix.image }} \
       #       --service=nodeport --node-ip=${{ steps.get_cluster.outputs.cluster_ip }} \
       #       --junitxml=tests-${{ steps.get_cluster.outputs.cluster }}.xml
-      - name: Run Smoke Tests
+      - name: Run Smoke Tests on ${{ matrix.image }}
         run: |
-          kubectl get pods --all-namespaces
+          kubectl create deployment ${{ matrix.image }} --image=${{ matrix.image }}:${{ github.sha }}
+          kubectl get pods -l=app=${{ matrix.image }}
           pip install -r requirements.txt
           touch tests-${{ steps.get_cluster.outputs.cluster }}.xml
           python -m pytest -m smoke \
           --context=kind-${{ github.run_id }} \
           --image=${{ matrix.image }}:${{ github.sha }} \
           --ic-type=${{ matrix.image }} \
-          --service=nodeport --node-ip=${{ steps.get_cluster.outputs.cluster_ip }} \
+          --service=nodeport --node-ip=127.0.0.1 \
           --junitxml=tests-${{ steps.get_cluster.outputs.cluster }}.xml
         working-directory: ./tests
       - name: Upload Test Results
