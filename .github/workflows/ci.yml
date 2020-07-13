@@ -153,7 +153,9 @@ jobs:
       # - name: Build Test Container
       #   run: docker build -t test-runner:${{ github.sha }} -f tests/docker/Dockerfile .
       - name: Build NGINX Container
-        run: docker build -t ${{ matrix.image }}:${{ github.sha }} --target ${{ matrix.target }} -f ${{ matrix.dockerfile }} ${{ matrix.path }}
+        run: |
+          chmod +x nginx-ingress
+          docker build -t ${{ matrix.image }}:${{ github.sha }} --target ${{ matrix.target }} -f ${{ matrix.dockerfile }} ${{ matrix.path }}
       - name: Deploy Kubernetes
         run: |
           kind create cluster --name ${{ github.run_id }} --wait ${{ env.K8S_TIMEOUT }}
@@ -186,8 +188,6 @@ jobs:
       #       --junitxml=tests-${{ steps.get_cluster.outputs.cluster }}.xml
       - name: Run Smoke Tests on ${{ matrix.image }}
         run: |
-          ls -la ${{ github.workspace }}/nginx-ingress
-          chmod +x ${{ github.workspace }}/nginx-ingress
           kubectl create deployment ${{ matrix.image }} --image=${{ matrix.image }}:${{ github.sha }}
           pip install -r requirements.txt
           kubectl describe pod -l=app=${{ matrix.image }}
