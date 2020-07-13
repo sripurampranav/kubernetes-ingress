@@ -178,6 +178,9 @@ jobs:
       - name: Run Smoke Tests
         run: |
             touch tests-${{ steps.get_cluster.outputs.cluster }}.xml
+            docker network ls
+            docker network inspect bridge
+            docker network inspect host
             docker run --rm \
             --name test-runner-${{ github.run_id }} \
             -v ${{ github.workspace }}/tests/tests-${{ steps.get_cluster.outputs.cluster }}.xml:/workspace/tests/tests-${{ steps.get_cluster.outputs.cluster }}.xml \
