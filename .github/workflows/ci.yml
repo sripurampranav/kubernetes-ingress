@@ -188,6 +188,7 @@ jobs:
             --ic-type=${{ matrix.image }} \
             --service=nodeport --node-ip=${{ steps.get_cluster.outputs.cluster_ip }} \
             --junitxml=tests-${{ steps.get_cluster.outputs.cluster }}.xml
+        working-directory: ./tests
       # - name: Run Smoke Tests on ${{ matrix.image }}
       #   run: |
       #     kubectl create deployment ${{ matrix.image }} --image=${{ matrix.image }}:${{ github.sha }}
@@ -200,7 +201,7 @@ jobs:
       #     --ic-type=${{ matrix.image }} \
       #     --service=nodeport --node-ip=127.0.0.1 \
       #     --junitxml=tests-${{ steps.get_cluster.outputs.cluster }}.xml
-        working-directory: ./tests
+        # working-directory: ./tests
       - name: Upload Test Results
         uses: actions/upload-artifact@v2
         with:
