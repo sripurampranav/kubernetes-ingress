@@ -158,7 +158,7 @@ jobs:
       - name: Cluster IP
         id: get_cluster
         run: |
-          echo ::set-output name=cluster_ip::$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${{ github.run_id }}-control-plane)
+          echo ::set-output name=cluster_ip::$(curl -s https://checkip.amazonaws.com)
           echo ::set-output name=cluster::$(echo '${{ matrix.image }}-${{ github.run_id }}')
       # - name: Setup Kubeconfig
       #   run: |
@@ -191,7 +191,7 @@ jobs:
           --context=kind-${{ github.run_id }} \
           --image=${{ matrix.image }}:${{ github.sha }} \
           --ic-type=${{ matrix.image }} \
-          --service=nodeport --node-ip=127.0.0.1 \
+          --service=nodeport --node-ip=${{ steps.get_cluster.outputs.cluster_ip }} \
           --junitxml=tests-${{ steps.get_cluster.outputs.cluster }}.xml
         working-directory: ./tests
       - name: Upload Test Results
