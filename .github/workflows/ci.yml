@@ -25,9 +25,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2
       - name: Build Binary
-        run: |
-          make binary BUILD_IN_CONTAINER=0
-          chmod +x nginx-ingress
+        run: make binary BUILD_IN_CONTAINER=0
         env:
           GOFLAGS: '-mod=vendor -gcflags=-trimpath=${{ github.workspace }} -asmflags=-trimpath=${{ github.workspace }}'
       - name: Upload Binary
@@ -91,6 +89,11 @@ jobs:
             path: '.'
             target: local
             image: nginx-plus-ingress-openshift
+          - os: ubuntu-18.04
+            dockerfile: build/appprotect/DockerfileWithAppProtectForPlus
+            path: '.'
+            target: local
+            image: nginx-plus-ingress-ap
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
@@ -152,9 +155,10 @@ jobs:
           echo "${KEY}" | base64 --decode > nginx-repo.key
       # - name: Build Test Container
       #   run: docker build -t test-runner:${{ github.sha }} -f tests/docker/Dockerfile .
-      - name: Build NGINX Container
+      - name: Build ${{ matrix.image }} Container
         run: |
           chmod +x nginx-ingress
+          ls -la
           docker build -t ${{ matrix.image }}:${{ github.sha }} --target ${{ matrix.target }} -f ${{ matrix.dockerfile }} ${{ matrix.path }}
       - name: Deploy Kubernetes
         run: |
