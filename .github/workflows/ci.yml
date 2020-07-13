@@ -130,12 +130,12 @@ jobs:
           - os: ubuntu-18.04
             dockerfile: build/Dockerfile
             path: '.'
-            target: local
+            target: container
             image: nginx-ingress
           - os: ubuntu-18.04
             dockerfile: build/DockerfileForPlus
             path: '.'
-            target: local
+            target: container
             image: nginx-plus-ingress
     steps:
       - name: Checkout Repository
@@ -156,10 +156,7 @@ jobs:
       # - name: Build Test Container
       #   run: docker build -t test-runner:${{ github.sha }} -f tests/docker/Dockerfile .
       - name: Build ${{ matrix.image }} Container
-        run: |
-          chmod 755 ./nginx-ingress
-          ls -la nginx-ingress
-          docker build -t ${{ matrix.image }}:${{ github.sha }} --target ${{ matrix.target }} -f ${{ matrix.dockerfile }} ${{ matrix.path }}
+        run: docker build -t ${{ matrix.image }}:${{ github.sha }} --target ${{ matrix.target }} -f ${{ matrix.dockerfile }} ${{ matrix.path }}
       - name: Deploy Kubernetes
         run: |
           kind create cluster --name ${{ github.run_id }} --wait ${{ env.K8S_TIMEOUT }}
@@ -192,16 +189,14 @@ jobs:
       #       --junitxml=tests-${{ steps.get_cluster.outputs.cluster }}.xml
       - name: Run Smoke Tests on ${{ matrix.image }}
         run: |
-          kubectl create deployment ${{ matrix.image }} --image=${{ matrix.image }}:${{ github.sha }}
           pip install -r requirements.txt
-          kubectl describe pod -l=app=${{ matrix.image }}
-          # touch tests-${{ steps.get_cluster.outputs.cluster }}.xml
-          # python -m pytest -m smoke \
-          # --context=kind-${{ github.run_id }} \
-          # --image=${{ matrix.image }}:${{ github.sha }} \
-          # --ic-type=${{ matrix.image }} \
-          # --service=nodeport --node-ip=127.0.0.1 \
-          # --junitxml=tests-${{ steps.get_cluster.outputs.cluster }}.xml
+          touch tests-${{ steps.get_cluster.outputs.cluster }}.xml
+          python -m pytest -m smoke \
+          --context=kind-${{ github.run_id }} \
+          --image=${{ matrix.image }}:${{ github.sha }} \
+          --ic-type=${{ matrix.image }} \
+          --service=nodeport --node-ip=127.0.0.1 \
+          --junitxml=tests-${{ steps.get_cluster.outputs.cluster }}.xml
         working-directory: ./tests
       - name: Upload Test Results
         uses: actions/upload-artifact@v2
