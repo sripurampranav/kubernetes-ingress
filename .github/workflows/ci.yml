@@ -179,10 +179,10 @@ jobs:
         run: |
             touch tests-${{ steps.get_cluster.outputs.cluster }}.xml
             docker network ls
-            docker network inspect bridge
-            docker network inspect host
+            docker network inspect kind
             docker run --rm \
             --name test-runner-${{ github.run_id }} \
+            --network=kind \
             -v ${{ github.workspace }}/tests/tests-${{ steps.get_cluster.outputs.cluster }}.xml:/workspace/tests/tests-${{ steps.get_cluster.outputs.cluster }}.xml \
             -v ${{ github.workspace }}/kube-${{ github.run_id }}:/root/.kube/config test-runner:${{ github.sha }} \
             --context=kind-${{ github.run_id }} \
