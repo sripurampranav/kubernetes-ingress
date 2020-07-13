@@ -130,12 +130,12 @@ jobs:
           - os: ubuntu-18.04
             dockerfile: build/Dockerfile
             path: '.'
-            target: local
+            target: container
             image: nginx-ingress
           - os: ubuntu-18.04
             dockerfile: build/DockerfileForPlus
             path: '.'
-            target: local
+            target: container
             image: nginx-plus-ingress
     steps:
       - name: Checkout Repository
