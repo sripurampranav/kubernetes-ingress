@@ -130,12 +130,12 @@ jobs:
           - os: ubuntu-18.04
             dockerfile: build/Dockerfile
             path: '.'
-            target: container
+            target: local
             image: nginx-ingress
           - os: ubuntu-18.04
             dockerfile: build/DockerfileForPlus
             path: '.'
-            target: container
+            target: local
             image: nginx-plus-ingress
     steps:
       - name: Checkout Repository
@@ -157,7 +157,7 @@ jobs:
       #   run: docker build -t test-runner:${{ github.sha }} -f tests/docker/Dockerfile .
       - name: Build ${{ matrix.image }} Container
         run: |
-          chmod +x nginx-ingress
+          chmod 755 ./nginx-ingress
           ls -la nginx-ingress
           docker build -t ${{ matrix.image }}:${{ github.sha }} --target ${{ matrix.target }} -f ${{ matrix.dockerfile }} ${{ matrix.path }}
       - name: Deploy Kubernetes
