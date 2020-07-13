@@ -128,14 +128,12 @@ jobs:
       matrix:
         include:
           - os: ubuntu-18.04
-            dockerfile: build/Dockerfile
-            path: '.'
-            target: container
+            path: build
+            file: Dockerfile
             image: nginx-ingress
           - os: ubuntu-18.04
-            dockerfile: build/DockerfileForPlus
-            path: '.'
-            target: container
+            path: build
+            file: DockerfileForPlus
             image: nginx-plus-ingress
     steps:
       - name: Checkout Repository
@@ -156,7 +154,14 @@ jobs:
       - name: Build Test Container
         run: docker build -t test-runner:${{ github.sha }} -f tests/docker/Dockerfile .
       - name: Build ${{ matrix.image }} Container
-        run: docker build -t ${{ matrix.image }}:${{ github.sha }} --target ${{ matrix.target }} -f ${{ matrix.dockerfile }} ${{ matrix.path }}
+        run: |
+          # docker build -t ${{ matrix.image }}:${{ github.sha }} --target ${{ matrix.target }} -f ${{ matrix.file }} ${{ matrix.path }}
+          make container \
+          BUILD_IN_CONTAINER=1 \
+          DOCKERFILEPATH=${{ matrix.path }} \
+          DOCKERFILE=${{ matrix.file }} \
+          PREFIX=${{ matrix.image }} \
+          TAG=${{ github.sha }}
       - name: Deploy Kubernetes
         run: |
           kind create cluster --name ${{ github.run_id }} --kubeconfig kube-${{ github.run_id }} --wait ${{ env.K8S_TIMEOUT }}
