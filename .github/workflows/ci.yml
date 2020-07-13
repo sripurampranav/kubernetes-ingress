@@ -140,11 +140,11 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
-      - name: Retrieve Binary
-        uses: actions/download-artifact@v2
-        with:
-          name: nginx-ingress
-          path: ${{ github.workspace }}/nginx-ingress
+      # - name: Retrieve Binary
+      #   uses: actions/download-artifact@v2
+      #   with:
+      #     name: nginx-ingress
+      #     path: ${{ github.workspace }}/nginx-ingress
       - name: Fetch Certificates
         if: contains(matrix.image, 'plus')
         env:
@@ -153,21 +153,21 @@ jobs:
         run: |
           echo "${CRT}" | base64 --decode > nginx-repo.crt
           echo "${KEY}" | base64 --decode > nginx-repo.key
-      # - name: Build Test Container
-      #   run: docker build -t test-runner:${{ github.sha }} -f tests/docker/Dockerfile .
+      - name: Build Test Container
+        run: docker build -t test-runner:${{ github.sha }} -f tests/docker/Dockerfile .
       - name: Build ${{ matrix.image }} Container
         run: docker build -t ${{ matrix.image }}:${{ github.sha }} --target ${{ matrix.target }} -f ${{ matrix.dockerfile }} ${{ matrix.path }}
       - name: Deploy Kubernetes
         run: |
-          kind create cluster --name ${{ github.run_id }} --wait ${{ env.K8S_TIMEOUT }}
+          kind create cluster --name ${{ github.run_id }} --kubeconfig kube-${{ github.run_id }} --wait ${{ env.K8S_TIMEOUT }}
       - name: Cluster IP
         id: get_cluster
         run: |
           echo ::set-output name=cluster_ip::$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${{ github.run_id }}-control-plane)
           echo ::set-output name=cluster::$(echo '${{ matrix.image }}-${{ github.run_id }}')
-      # - name: Setup Kubeconfig
-      #   run: |
-      #     sed -i 's|server:.*|server: https://${{ steps.get_cluster.outputs.cluster_ip }}:6443|' kube-${{ github.run_id }}
+      - name: Setup Kubeconfig
+        run: |
+          sed -i 's|server:.*|server: https://${{ steps.get_cluster.outputs.cluster_ip }}:6443|' kube-${{ github.run_id }}
       - name: Push Docker Image
         run: |
           kind load docker-image ${{ matrix.image }}:${{ github.sha }} --name ${{ github.run_id }}
@@ -175,28 +175,31 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      # - name: Run Smoke Tests
-      #   run: |
-      #       cd tests && touch tests-${{ steps.get_cluster.outputs.cluster }}.xml
-      #       docker run --rm \
-      #       --name test-runner-${{ github.run_id }} \
-      #       -v ${{ github.workspace }}/tests/tests-${{ steps.get_cluster.outputs.cluster }}.xml:/workspace/tests/tests-${{ steps.get_cluster.outputs.cluster }}.xml \
-      #       -v ${{ github.workspace }}/kube-${{ github.run_id }}:/root/.kube/config test-runner:${{ github.sha }} \
-      #       --context=kind-${{ github.run_id }} \
-      #       --image=${{ matrix.image }}:${{ github.sha }} \
-      #       --image-pull-policy=IfNotPresent --ic-type=${{ matrix.image }} \
-      #       --service=nodeport --node-ip=${{ steps.get_cluster.outputs.cluster_ip }} \
-      #       --junitxml=tests-${{ steps.get_cluster.outputs.cluster }}.xml
-      - name: Run Smoke Tests on ${{ matrix.image }}
+      - name: Run Smoke Tests
         run: |
-          pip install -r requirements.txt
-          touch tests-${{ steps.get_cluster.outputs.cluster }}.xml
-          python -m pytest -m smoke \
-          --context=kind-${{ github.run_id }} \
-          --image=${{ matrix.image }}:${{ github.sha }} \
-          --ic-type=${{ matrix.image }} \
-          --service=nodeport --node-ip=127.0.0.1 \
-          --junitxml=tests-${{ steps.get_cluster.outputs.cluster }}.xml
+            touch tests-${{ steps.get_cluster.outputs.cluster }}.xml
+            docker run --rm \
+            --name test-runner-${{ github.run_id }} \
+            -v ${{ github.workspace }}/tests/tests-${{ steps.get_cluster.outputs.cluster }}.xml:/workspace/tests/tests-${{ steps.get_cluster.outputs.cluster }}.xml \
+            -v ${{ github.workspace }}/kube-${{ github.run_id }}:/root/.kube/config test-runner:${{ github.sha }} \
+            --context=kind-${{ github.run_id }} \
+            --image=${{ matrix.image }}:${{ github.sha }} \
+            --image-pull-policy=Never \
+            --ic-type=${{ matrix.image }} \
+            --service=nodeport --node-ip=${{ steps.get_cluster.outputs.cluster_ip }} \
+            --junitxml=tests-${{ steps.get_cluster.outputs.cluster }}.xml
+      # - name: Run Smoke Tests on ${{ matrix.image }}
+      #   run: |
+      #     kubectl create deployment ${{ matrix.image }} --image=${{ matrix.image }}:${{ github.sha }}
+      #     pip install -r requirements.txt
+      #     kubectl describe pod -l=app=${{ matrix.image }}
+      #     touch tests-${{ steps.get_cluster.outputs.cluster }}.xml
+      #     python -m pytest -m smoke \
+      #     --context=kind-${{ github.run_id }} \
+      #     --image=${{ matrix.image }}:${{ github.sha }} \
+      #     --ic-type=${{ matrix.image }} \
+      #     --service=nodeport --node-ip=127.0.0.1 \
+      #     --junitxml=tests-${{ steps.get_cluster.outputs.cluster }}.xml
         working-directory: ./tests
       - name: Upload Test Results
         uses: actions/upload-artifact@v2
