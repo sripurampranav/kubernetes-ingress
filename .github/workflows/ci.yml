@@ -45,7 +45,9 @@ jobs:
         with:
           go-version: '${{ env.GOLANG_VERSION }}'
       - name: Run Tests
-        run: go test ./...
+        run: make test
+        # run: go test ./...
+        working-directory: ${{ github.workspace }}
 
   build:
     name: Build Docker Images
@@ -55,45 +57,53 @@ jobs:
       matrix:
         include:
           - os: ubuntu-18.04
-            dockerfile: build/Dockerfile
+            file: build/Dockerfile
             path: '.'
             target: local
             image: nginx-ingress
+            type: oss
           - os: ubuntu-18.04
-            dockerfile: build/DockerfileForAlpine
+            file: build/DockerfileForAlpine
             path: '.'
             target: local
             image: nginx-ingress-alpine
+            type: oss
           - os: ubuntu-18.04
-            dockerfile: build/DockerfileForPlus
+            file: build/DockerfileForPlus
             path: '.'
             target: local
             image: nginx-plus-ingress
+            type: plus
           - os: ubuntu-18.04
-            dockerfile: build/DockerfileWithOpentracing
+            file: build/DockerfileWithOpentracing
             path: '.'
             target: local
             image: nginx-ingress-opentracing
+            type: oss
           - os: ubuntu-18.04
-            dockerfile: build/DockerfileWithOpentracingForPlus
+            file: build/DockerfileWithOpentracingForPlus
             path: '.'
             target: local
             image: nginx-plus-ingress-opentracing
+            type: plus
           - os: ubuntu-18.04
-            dockerfile: build/openshift/Dockerfile
+            file: build/openshift/Dockerfile
             path: '.'
             target: local
             image: nginx-ingress-openshift
+            type: oss
           - os: ubuntu-18.04
-            dockerfile: build/openshift/DockerfileForPlus
+            file: build/openshift/DockerfileForPlus
             path: '.'
             target: local
             image: nginx-plus-ingress-openshift
-          # - os: ubuntu-18.04
-          #   dockerfile: build/appprotect/DockerfileWithAppProtectForPlus
-          #   path: '.'
-          #   target: local
-          #   image: nginx-plus-ingress-ap
+            type: plus
+          - os: ubuntu-18.04
+            file: build/appprotect/DockerfileWithAppProtectForPlus
+            path: '.'
+            target: local
+            image: nginx-plus-ingress-ap
+            type: plus-ap
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
@@ -102,11 +112,19 @@ jobs:
         with:
           name: nginx-ingress
           path: ${{ github.workspace }}/nginx-ingress
-      - name: Fetch Certificates
-        if: contains(matrix.image, 'plus')
+      - name: Fetch N+ Certificates
+        if: matrix.type == 'plus'
         env:
           CRT: ${{ secrets.NGINX_CRT }}
           KEY: ${{ secrets.NGINX_KEY }}
+        run: |
+          echo "${CRT}" | base64 --decode > nginx-repo.crt
+          echo "${KEY}" | base64 --decode > nginx-repo.key
+      - name: Fetch N+ AppProtect Certificates
+        if: matrix.type == 'plus-ap'
+        env:
+          CRT: ${{ secrets.NGINX_AP_CRT }}
+          KEY: ${{ secrets.NGINX_AP_KEY }}
         run: |
           echo "${CRT}" | base64 --decode > nginx-repo.crt
           echo "${KEY}" | base64 --decode > nginx-repo.key
@@ -114,7 +132,7 @@ jobs:
         uses: docker/build-push-action@v1
         with:
           repository: ${{ matrix.image }}
-          dockerfile: ${{ matrix.dockerfile }}
+          dockerfile: ${{ matrix.file }}
           path: ${{ matrix.path }}
           target: ${{ matrix.target }}
           tag_with_sha: true
@@ -124,6 +142,7 @@ jobs:
     name: Smoke Tests
     runs-on: ${{ matrix.os }}
     needs: [build, binary, unit-tests]
+    if: (github.event_name != 'schedule')
     strategy:
       matrix:
         include:
@@ -131,23 +150,43 @@ jobs:
             path: build
             file: Dockerfile
             image: nginx-ingress
+            tests: '-m smoke'
+            type: oss
           - os: ubuntu-18.04
             path: build
             file: DockerfileForPlus
             image: nginx-plus-ingress
+            tests: '-m smoke'
+            type: plus
+          - os: ubuntu-18.04
+            path: build/appprotect
+            file: DockerfileWithAppProtectForPlus
+            image: nginx-plus-ingress
+            markers: '-m appprotect'
+            type: plus-ap
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
-      # - name: Retrieve Binary
-      #   uses: actions/download-artifact@v2
-      #   with:
-      #     name: nginx-ingress
-      #     path: ${{ github.workspace }}/nginx-ingress
-      - name: Fetch Certificates
-        if: contains(matrix.image, 'plus')
+      - name: Retrieve Binary
+        uses: actions/download-artifact@v2
+        with:
+          name: nginx-ingress
+          path: ${{ github.workspace }}/nginx-ingress
+      - name: Binary Permissions
+        run: chmod +x nginx-ingress
+      - name: Fetch N+ Certificates
+        if: matrix.type == 'plus'
         env:
           CRT: ${{ secrets.NGINX_CRT }}
           KEY: ${{ secrets.NGINX_KEY }}
+        run: |
+          echo "${CRT}" | base64 --decode > nginx-repo.crt
+          echo "${KEY}" | base64 --decode > nginx-repo.key
+      - name: Fetch N+ AppProtect Certificates
+        if: matrix.type == 'plus-ap'
+        env:
+          CRT: ${{ secrets.NGINX_AP_CRT }}
+          KEY: ${{ secrets.NGINX_AP_KEY }}
         run: |
           echo "${CRT}" | base64 --decode > nginx-repo.crt
           echo "${KEY}" | base64 --decode > nginx-repo.key
@@ -155,13 +194,8 @@ jobs:
         run: docker build -t test-runner:${{ github.sha }} -f tests/docker/Dockerfile .
       - name: Build ${{ matrix.image }} Container
         run: |
-          # docker build -t ${{ matrix.image }}:${{ github.sha }} --target ${{ matrix.target }} -f ${{ matrix.file }} ${{ matrix.path }}
-          make container \
-          BUILD_IN_CONTAINER=1 \
-          DOCKERFILEPATH=${{ matrix.path }} \
-          DOCKERFILE=${{ matrix.file }} \
-          PREFIX=${{ matrix.image }} \
-          TAG=${{ github.sha }}
+          make container BUILD_IN_CONTAINER=0 DOCKERFILEPATH=${{ matrix.path }} \
+          DOCKERFILE=${{ matrix.file }} PREFIX=${{ matrix.image }} TAG=${{ github.sha }}
       - name: Deploy Kubernetes
         run: |
           kind create cluster --name ${{ github.run_id }} --kubeconfig kube-${{ github.run_id }} --wait ${{ env.K8S_TIMEOUT }}
@@ -183,8 +217,6 @@ jobs:
       - name: Run Smoke Tests
         run: |
             touch tests-${{ steps.get_cluster.outputs.cluster }}.xml
-            docker network ls
-            docker network inspect kind
             docker run --rm \
             --name test-runner-${{ github.run_id }} \
             --network=kind \
@@ -195,21 +227,9 @@ jobs:
             --image-pull-policy=Never \
             --ic-type=${{ matrix.image }} \
             --service=nodeport --node-ip=${{ steps.get_cluster.outputs.cluster_ip }} \
-            --junitxml=tests-${{ steps.get_cluster.outputs.cluster }}.xml
+            --junitxml=tests-${{ steps.get_cluster.outputs.cluster }}.xml \
+            ${{ matrix.markers }}
         working-directory: ./tests
-      # - name: Run Smoke Tests on ${{ matrix.image }}
-      #   run: |
-      #     kubectl create deployment ${{ matrix.image }} --image=${{ matrix.image }}:${{ github.sha }}
-      #     pip install -r requirements.txt
-      #     kubectl describe pod -l=app=${{ matrix.image }}
-      #     touch tests-${{ steps.get_cluster.outputs.cluster }}.xml
-      #     python -m pytest -m smoke \
-      #     --context=kind-${{ github.run_id }} \
-      #     --image=${{ matrix.image }}:${{ github.sha }} \
-      #     --ic-type=${{ matrix.image }} \
-      #     --service=nodeport --node-ip=127.0.0.1 \
-      #     --junitxml=tests-${{ steps.get_cluster.outputs.cluster }}.xml
-        # working-directory: ./tests
       - name: Upload Test Results
         uses: actions/upload-artifact@v2
         with:
