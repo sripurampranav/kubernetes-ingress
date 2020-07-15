@@ -136,7 +136,7 @@ jobs:
           tag_with_sha: true
           push: false
 
-  smoke-tests-nginx:
+  smoke-tests:
     name: Smoke Tests
     runs-on: ${{ matrix.os }}
     needs: [build, binary, unit-tests]
@@ -191,37 +191,29 @@ jobs:
           make container BUILD_IN_CONTAINER=1 DOCKERFILEPATH=${{ matrix.path }} \
           DOCKERFILE=${{ matrix.file }} PREFIX=${{ matrix.image }} TAG=${{ matrix.tag }}
       - name: Deploy Kubernetes
+        id: k8s
         run: |
           kind create cluster --name ${{ github.run_id }} --kubeconfig kube-${{ github.run_id }} --wait ${{ env.K8S_TIMEOUT }}
-      - name: Cluster IP
-        id: get_cluster
-        run: |
+          kind load docker-image ${{ matrix.image }}:${{ matrix.tag }} --name ${{ github.run_id }}
           echo ::set-output name=cluster_ip::$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${{ github.run_id }}-control-plane)
-          echo ::set-output name=cluster::$(echo '${{ matrix.image }}-${{ github.run_id }}')
+          echo ::set-output name=cluster::$(echo 'nginx-${{ matrix.type }}-${{ github.run_id }}')
       - name: Setup Kubeconfig
         run: |
-          sed -i 's|server:.*|server: https://${{ steps.get_cluster.outputs.cluster_ip }}:6443|' kube-${{ github.run_id }}
-      - name: Push Docker Image
-        run: |
-          kind load docker-image ${{ matrix.image }}:${{ matrix.tag }} --name ${{ github.run_id }}
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          sed -i 's|server:.*|server: https://${{ steps.k8s.outputs.cluster_ip }}:6443|' kube-${{ github.run_id }}
       - name: Run Smoke Tests
         run: |
-          touch tests-${{ steps.get_cluster.outputs.cluster }}.xml
+          touch tests-${{ steps.k8s.outputs.cluster }}.xml
           docker run --rm \
           --name test-runner-${{ github.run_id }} \
           --network=kind \
-          -v ${{ github.workspace }}/tests/tests-${{ steps.get_cluster.outputs.cluster }}.xml:/workspace/tests/tests-${{ steps.get_cluster.outputs.cluster }}.xml \
+          -v ${{ github.workspace }}/tests/tests-${{ steps.k8s.outputs.cluster }}.xml:/workspace/tests/tests-${{ steps.get_cluster.outputs.cluster }}.xml \
           -v ${{ github.workspace }}/kube-${{ github.run_id }}:/root/.kube/config test-runner:${{ github.sha }} \
           --context=kind-${{ github.run_id }} \
           --image=${{ matrix.image }}:${{ matrix.tag }} \
           --image-pull-policy=Never \
           --ic-type=${{ matrix.image }} \
-          --service=nodeport --node-ip=${{ steps.get_cluster.outputs.cluster_ip }} \
-          --junitxml=tests-${{ steps.get_cluster.outputs.cluster }}.xml \
+          --service=nodeport --node-ip=${{ steps.k8s.outputs.cluster_ip }} \
+          --junitxml=tests-${{ steps.k8s.outputs.cluster }}.xml \
           ${{ matrix.markers }}
         working-directory: ./tests
       - name: Upload Test Results
@@ -229,3 +221,17 @@ jobs:
         with:
           name: test-results-${{ matrix.image }}
           path: ${{ github.workspace }}/tests/tests-${{ steps.get_cluster.outputs.cluster }}.xml
+
+  release-helm:
+    name: Release Helm Chart
+    runs-on: ubuntu-18.04
+    needs: [smoke-tests]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Lint & Package
+        run: |
+          chartDir=deployments/helm-chart
+          chartVer=$(helm inspect chart ${chartDir} | grep "version:" | cut -d " " -f 2)
+          helm lint ${chartDir}
+          helm package --version ${chartVer} ${chartDir} -d ${chartDir} > /dev/null 2>&1 || true
