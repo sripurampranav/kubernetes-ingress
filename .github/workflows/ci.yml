@@ -149,56 +149,56 @@ jobs:
             file: Dockerfile
             image: nginx-ingress
             tag: ${{ github.sha }}
-            tests: '-m ingresses'
+            markers: '-m ingresses'
             type: oss
           - os: ubuntu-18.04
             path: build
             file: Dockerfile
             image: nginx-ingress
             tag: ${{ github.sha }}
-            tests: '-m vsr'
+            markers: '-m vsr'
             type: oss
           - os: ubuntu-18.04
             path: build
             file: Dockerfile
             image: nginx-ingress
             tag: ${{ github.sha }}
-            tests: '-m vs'
+            markers: '-m vs'
             type: oss
           - os: ubuntu-18.04
             path: build
             file: Dockerfile
             image: nginx-ingress
             tag: ${{ github.sha }}
-            tests: '-m policies'
+            markers: '-m policies'
             type: oss
           - os: ubuntu-18.04
             path: build
             file: DockerfileForPlus
             image: nginx-plus-ingress
             tag: ${{ github.sha }}
-            tests: '-m ingresses'
+            markers: '-m ingresses'
             type: plus
           - os: ubuntu-18.04
             path: build
             file: DockerfileForPlus
             image: nginx-plus-ingress
             tag: ${{ github.sha }}
-            tests: '-m vsr'
+            markers: '-m vsr'
             type: plus
           - os: ubuntu-18.04
             path: build
             file: DockerfileForPlus
             image: nginx-plus-ingress
             tag: ${{ github.sha }}
-            tests: '-m vs'
+            markers: '-m vs'
             type: plus
           - os: ubuntu-18.04
             path: build
             file: DockerfileForPlus
             image: nginx-plus-ingress
             tag: ${{ github.sha }}
-            tests: '-m policies'
+            markers: '-m policies'
             type: plus
           - os: ubuntu-18.04
             path: build/appprotect
