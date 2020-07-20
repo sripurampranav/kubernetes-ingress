@@ -248,7 +248,7 @@ jobs:
           docker run --rm \
           --name test-runner-${{ github.run_id }} \
           --network=kind \
-          -v ${{ github.workspace }}/tests/tests-${{ steps.k8s.outputs.cluster }}.xml:/workspace/tests/tests-${{ steps.get_cluster.outputs.cluster }}.xml \
+          -v ${{ github.workspace }}/tests/tests-${{ steps.k8s.outputs.cluster }}.xml:/workspace/tests/tests-${{ steps.k8s.outputs.cluster }}.xml \
           -v ${{ github.workspace }}/kube-${{ github.run_id }}:/root/.kube/config test-runner:${{ matrix.tag }} \
           --context=kind-${{ github.run_id }} \
           --image=${{ matrix.image }}:${{ matrix.tag }} \
