@@ -149,14 +149,56 @@ jobs:
             file: Dockerfile
             image: nginx-ingress
             tag: ${{ github.sha }}
-            tests: '-m smoke'
+            tests: '-m ingresses'
+            type: oss
+          - os: ubuntu-18.04
+            path: build
+            file: Dockerfile
+            image: nginx-ingress
+            tag: ${{ github.sha }}
+            tests: '-m vsr'
+            type: oss
+          - os: ubuntu-18.04
+            path: build
+            file: Dockerfile
+            image: nginx-ingress
+            tag: ${{ github.sha }}
+            tests: '-m vs'
+            type: oss
+          - os: ubuntu-18.04
+            path: build
+            file: Dockerfile
+            image: nginx-ingress
+            tag: ${{ github.sha }}
+            tests: '-m policies'
             type: oss
           - os: ubuntu-18.04
             path: build
             file: DockerfileForPlus
             image: nginx-plus-ingress
             tag: ${{ github.sha }}
-            tests: '-m smoke'
+            tests: '-m ingresses'
+            type: plus
+          - os: ubuntu-18.04
+            path: build
+            file: DockerfileForPlus
+            image: nginx-plus-ingress
+            tag: ${{ github.sha }}
+            tests: '-m vsr'
+            type: plus
+          - os: ubuntu-18.04
+            path: build
+            file: DockerfileForPlus
+            image: nginx-plus-ingress
+            tag: ${{ github.sha }}
+            tests: '-m vs'
+            type: plus
+          - os: ubuntu-18.04
+            path: build
+            file: DockerfileForPlus
+            image: nginx-plus-ingress
+            tag: ${{ github.sha }}
+            tests: '-m policies'
             type: plus
           - os: ubuntu-18.04
             path: build/appprotect
@@ -185,7 +227,7 @@ jobs:
           echo "${CRT}" | base64 --decode > nginx-repo.crt
           echo "${KEY}" | base64 --decode > nginx-repo.key
       - name: Build Test Container
-        run: docker build -t test-runner:${{ github.sha }} -f tests/docker/Dockerfile .
+        run: docker build -t test-runner:${{ matrix.tag }} -f tests/docker/Dockerfile .
       - name: Build ${{ matrix.image }} Container
         run: |
           make container BUILD_IN_CONTAINER=1 DOCKERFILEPATH=${{ matrix.path }} \
@@ -207,7 +249,7 @@ jobs:
           --name test-runner-${{ github.run_id }} \
           --network=kind \
           -v ${{ github.workspace }}/tests/tests-${{ steps.k8s.outputs.cluster }}.xml:/workspace/tests/tests-${{ steps.get_cluster.outputs.cluster }}.xml \
-          -v ${{ github.workspace }}/kube-${{ github.run_id }}:/root/.kube/config test-runner:${{ github.sha }} \
+          -v ${{ github.workspace }}/kube-${{ github.run_id }}:/root/.kube/config test-runner:${{ matrix.tag }} \
           --context=kind-${{ github.run_id }} \
           --image=${{ matrix.image }}:${{ matrix.tag }} \
           --image-pull-policy=Never \
@@ -220,7 +262,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: test-results-${{ matrix.image }}
-          path: ${{ github.workspace }}/tests/tests-${{ steps.get_cluster.outputs.cluster }}.xml
+          path: ${{ github.workspace }}/tests/tests-${{ steps.k8s.outputs.cluster }}.xml
 
   release-helm:
     name: Release Helm Chart
@@ -233,5 +275,5 @@ jobs:
         run: |
           chartDir=deployments/helm-chart
           chartVer=$(helm inspect chart ${chartDir} | grep "version:" | cut -d " " -f 2)
-          helm lint ${chartDir}
-          helm package --version ${chartVer} ${chartDir} -d ${chartDir} > /dev/null 2>&1 || true
+          # helm lint ${chartDir}
+          # helm package --version ${chartVer} ${chartDir} -d ${chartDir} > /dev/null 2>&1 || true
