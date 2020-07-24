@@ -12,4 +12,4 @@ test -x "hack/${CONTROLLER_GEN}" || curl -f -L -o "hack/${CONTROLLER_GEN}" "http
 chmod +x "hack/${CONTROLLER_GEN}"
 
 # regenerate the schemas in the CRD manifests
-hack/${CONTROLLER_GEN} schemapatch:manifests=./deployments/common/ paths="./pkg/apis/configuration/..." output:dir=./deployments/common
+hack/${CONTROLLER_GEN} schemapatch:manifests=./deployments/common/ paths="./pkg/apis/configuration/..." output:dir=./deployments/common output:dir=./deployments/helm-chart/crds
