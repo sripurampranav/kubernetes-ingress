@@ -15,6 +15,8 @@ env:
   GOLANG_VERSION: 1.14
   PYTHON_VERSION: 3.8
   K8S_TIMEOUT: 1m
+  HELM_CHART_DIR: deployments/helm-chart
+  HELM_CHART_VERSION: 0.0.0-edge
 
 jobs:
 
@@ -50,7 +52,7 @@ jobs:
   build:
     name: Build Docker Images
     runs-on: ${{ matrix.os }}
-    needs: [binary]
+    needs: [binary, unit-tests]
     strategy:
       matrix:
         include:
@@ -294,9 +296,6 @@ jobs:
     runs-on: ubuntu-18.04
     # needs: [smoke-tests, release-docker]
     needs: [smoke-tests]
-    env:
-      HELM_CHART_DIR: deployments/helm-chart
-      HELM_CHART_VERSION: 0.0.0-edge
     if: 
       github.repository == 'nginxinc/kubernetes-ingress' && 
       github.event_name != 'schedule' 
@@ -310,7 +309,7 @@ jobs:
           helm lint ${{ env.HELM_CHART_DIR }}
       - name: Package
         run: |
-          helm package --version ${{ env.HELM_CHART_VERSION }} ${{ env.HELM_CHART_DIR }} -d ${{ env.HELM_CHART_DIR }} > /dev/null 2>&1 || true
+          helm package --version ${{ env.HELM_CHART_VERSION }} ${{ env.HELM_CHART_DIR }} -d ${{ env.HELM_CHART_DIR }}
       - name: Upload Chart
         uses: actions/upload-artifact@v2
         with:
@@ -344,6 +343,10 @@ jobs:
       - name: Push Helm Chart
         run: |
           helm repo index edge --url https://helm.nginx.com/edge
+          git status
+          echo git add ./edge/nginx-ingress-${{ env.HELM_CHART_VERSION }}.tgz
+          echo git commit -m "NGINX Ingress Controller ${GIT_COMMIT_MSG}"
+          echo git push -u origin master
 
   job-failure:
     name: Report Failures
