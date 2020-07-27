@@ -14,7 +14,6 @@ env:
   DOCKER_BUILDKIT: 1
   GOLANG_VERSION: 1.14
   PYTHON_VERSION: 3.8
-  HELM_CHART_VERSION: 0.0.0-edge
   K8S_TIMEOUT: 1m
 
 jobs:
@@ -269,17 +268,20 @@ jobs:
     name: Package Helm Chart
     runs-on: ubuntu-18.04
     needs: [smoke-tests]
+    env:
+      HELM_CHART_DIR: deployments/helm-chart
+      HELM_CHART_VERSION: 0.0.0-edge
     if: github.repository == 'nginxinc/kubernetes-ingress' && github.event_name != 'schedule'
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
-      - name: Lint & Package
+      - name: Lint
         run: |
-          chartDir=deployments/helm-chart
-          chartVer=${{ env.HELM_CHART_VERSION }}
-          sed -i "s|edge|\${chartVer}|g" deployments/helm-chart/Chart.yaml
-          helm lint ${chartDir}
-          helm package --version ${chartVer} ${chartDir} -d ${chartDir} > /dev/null 2>&1 || true
+          sed -i "s|edge|\${{ env.HELM_CHART_VERSION }}|g" deployments/helm-chart/Chart.yaml
+          helm lint ${{ env.HELM_CHART_DIR }}
+      - name: Package
+        run: |
+          helm package --version ${{ env.HELM_CHART_VERSION }} ${{ env.HELM_CHART_DIR }} -d ${{ env.HELM_CHART_DIR }} > /dev/null 2>&1 || true
       - name: Upload Chart
         uses: actions/upload-artifact@v2
         with:
