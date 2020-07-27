@@ -14,7 +14,7 @@ env:
   DOCKER_BUILDKIT: 1
   GOLANG_VERSION: 1.14
   PYTHON_VERSION: 3.8
-  HELM_CHART_VERSION: 
+  HELM_CHART_VERSION: 0.0.0-edge
   K8S_TIMEOUT: 1m
 
 jobs:
@@ -266,7 +266,7 @@ jobs:
           path: ${{ github.workspace }}/tests/tests-${{ steps.k8s.outputs.cluster }}.xml
 
   package-helm:
-    name: Release Helm Chart
+    name: Package Helm Chart
     runs-on: ubuntu-18.04
     needs: [smoke-tests]
     if: github.repository == 'nginxinc/kubernetes-ingress' && github.event_name != 'schedule'
