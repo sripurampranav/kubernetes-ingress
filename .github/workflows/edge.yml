@@ -140,7 +140,9 @@ jobs:
     name: Smoke Tests
     runs-on: ${{ matrix.os }}
     needs: [build, binary, unit-tests]
-    if: github.repository == 'nginxinc/kubernetes-ingress' && github.event_name != 'schedule'
+    if: 
+      github.repository == 'nginxinc/kubernetes-ingress' && 
+      github.event_name != 'schedule'
     strategy:
       matrix:
         include:
@@ -264,14 +266,41 @@ jobs:
           name: test-results-${{ steps.k8s.outputs.cluster }}
           path: ${{ github.workspace }}/tests/tests-${{ steps.k8s.outputs.cluster }}.xml
 
+  # Matrix for edge, edge-alpine, edge-ubi
+  # release-docker:
+  #   name: Release Image
+  #   runs-on: ubuntu-18.04
+  #   needs: [smoke-tests]
+  #   if: 
+  #     github.repository == 'nginxinc/kubernetes-ingress' && 
+  #     github.ref == 'refs/heads/master'
+  #   steps:
+  #     - name: Checkout Repository
+  #       uses: actions/checkout@v2
+  #     - name: Push to Dockerhub
+  #       uses: docker/build-push-action@v1
+  #       with:
+  #         repository: nginx/nginx-ingress
+  #         dockerfile: build/Dockerfile
+  #         path: '.'
+  #         username: ${{ secrets.DOCKER_USERNAME }}
+  #         password: ${{ secrets.DOCKER_PASSWORD }}
+  #         tag_with_ref: false
+  #         tags: latest,${{ steps.get_version.outputs.GIT_TAG }}
+  #         push: false
+
   package-helm:
     name: Package Helm Chart
     runs-on: ubuntu-18.04
+    # needs: [smoke-tests, release-docker]
     needs: [smoke-tests]
     env:
       HELM_CHART_DIR: deployments/helm-chart
       HELM_CHART_VERSION: 0.0.0-edge
-    if: github.repository == 'nginxinc/kubernetes-ingress' && github.event_name != 'schedule'
+    if: 
+      github.repository == 'nginxinc/kubernetes-ingress' && 
+      github.event_name != 'schedule' 
+      # github.ref == 'refs/heads/master'
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
@@ -291,11 +320,15 @@ jobs:
   release-helm:
     name: Release Helm Chart
     runs-on: ubuntu-18.04
+    # needs: [smoke-tests, release-docker, package-helm]
     needs: [smoke-tests, package-helm]
     env:
       GIT_COMMITTER_NAME: NGINX Kubernetes Team
       GIT_COMMITTER_EMAIL: kubernetes@nginx.com
-    if: github.repository == 'nginxinc/kubernetes-ingress' && github.event_name != 'schedule'
+    if: 
+      github.repository == 'nginxinc/kubernetes-ingress' && 
+      github.event_name != 'schedule' 
+      # github.ref == 'refs/heads/master'
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
@@ -315,7 +348,10 @@ jobs:
   job-failure:
     name: Report Failures
     runs-on: ubuntu-18.04
-    if: failure() && github.repository == 'nginxinc/kubernetes-ingress' && github.ref == 'refs/heads/master'
+    if: 
+      failure() && 
+      github.repository == 'nginxinc/kubernetes-ingress' && 
+      github.ref == 'refs/heads/master'
     steps:
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@master
