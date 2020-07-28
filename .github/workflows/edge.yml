@@ -268,28 +268,42 @@ jobs:
           name: test-results-${{ steps.k8s.outputs.cluster }}
           path: ${{ github.workspace }}/tests/tests-${{ steps.k8s.outputs.cluster }}.xml
 
-  # Matrix for edge, edge-alpine, edge-ubi
-  # release-docker:
-  #   name: Release Image
-  #   runs-on: ubuntu-18.04
-  #   needs: [smoke-tests]
-  #   if: 
-  #     github.repository == 'nginxinc/kubernetes-ingress' && 
-  #     github.ref == 'refs/heads/master'
-  #   steps:
-  #     - name: Checkout Repository
-  #       uses: actions/checkout@v2
-  #     - name: Push to Dockerhub
-  #       uses: docker/build-push-action@v1
-  #       with:
-  #         repository: nginx/nginx-ingress
-  #         dockerfile: build/Dockerfile
-  #         path: '.'
-  #         username: ${{ secrets.DOCKER_USERNAME }}
-  #         password: ${{ secrets.DOCKER_PASSWORD }}
-  #         tag_with_ref: false
-  #         tags: latest,${{ steps.get_version.outputs.GIT_TAG }}
-  #         push: false
+  release-docker:
+    name: Release Images
+    runs-on: ${{ matrix.os }}
+    needs: [smoke-tests]
+    # if: 
+    #   github.repository == 'nginxinc/kubernetes-ingress' && 
+    #   github.ref == 'refs/heads/master'
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-18.04
+            file: build/Dockerfile
+            image: nginx-ingress
+            tag: edge
+          - os: ubuntu-18.04
+            file: build/DockerfileForAlpine
+            image: nginx-ingress
+            tag: edge-alpine
+          - os: ubuntu-18.04
+            file: build/openshift/Dockerfile
+            image: nginx-ingress
+            tag: edge-ubi
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Push to Dockerhub
+        uses: docker/build-push-action@v1
+        with:
+          repository: nginx/nginx-ingress
+          dockerfile: ${{ matrix.file }}
+          path: '.'
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          tag_with_ref: false
+          tags: ${{ matrix.tag }}
+          push: false
 
   package-helm:
     name: Package Helm Chart
@@ -345,9 +359,11 @@ jobs:
       - name: Push Helm Chart
         run: |
           helm repo index edge --url https://helm.nginx.com/edge
+          ls -la 
+          tree edge/
           git status
-          echo git add ./edge/nginx-ingress-${{ env.HELM_CHART_VERSION }}.tgz
-          echo git commit -m "NGINX Ingress Controller ${GIT_COMMIT_MSG}"
+          echo git add -A
+          echo git commit -m "NGINX Ingress Controller - Edge Release (latest)"
           echo git push -u origin master
 
   job-failure:
