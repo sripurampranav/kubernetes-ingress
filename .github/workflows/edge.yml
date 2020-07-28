@@ -4,11 +4,10 @@ on:
   push:
     branches:
       - '**'
+      - '!release-*'
   pull_request:
     branches:
       - master
-  schedule:
-    - cron:  '* 4 * * *'
 
 env:
   DOCKER_BUILDKIT: 1
@@ -142,9 +141,7 @@ jobs:
     name: Smoke Tests
     runs-on: ${{ matrix.os }}
     needs: [build, binary, unit-tests]
-    if: 
-      github.repository == 'nginxinc/kubernetes-ingress' && 
-      github.event_name != 'schedule'
+    if: github.repository == 'nginxinc/kubernetes-ingress'
     strategy:
       matrix:
         include:
@@ -308,11 +305,8 @@ jobs:
   package-helm:
     name: Package Helm Chart
     runs-on: ubuntu-18.04
-    # needs: [smoke-tests, release-docker]
-    needs: [smoke-tests]
-    if: 
-      github.repository == 'nginxinc/kubernetes-ingress' && 
-      github.event_name != 'schedule' 
+    needs: [smoke-tests, release-docker]
+    if: github.repository == 'nginxinc/kubernetes-ingress'
       # github.ref == 'refs/heads/master'
     steps:
       - name: Checkout Repository
@@ -333,14 +327,12 @@ jobs:
   release-helm:
     name: Release Helm Chart
     runs-on: ubuntu-18.04
-    # needs: [smoke-tests, release-docker, package-helm]
-    needs: [smoke-tests, package-helm]
+    needs: [smoke-tests, release-docker, package-helm]
     env:
       GIT_COMMITTER_NAME: NGINX Kubernetes Team
       GIT_COMMITTER_EMAIL: kubernetes@nginx.com
     if: 
-      github.repository == 'nginxinc/kubernetes-ingress' && 
-      github.event_name != 'schedule' 
+      github.repository == 'nginxinc/kubernetes-ingress'
       # github.ref == 'refs/heads/master'
     steps:
       - name: Checkout Repository
@@ -359,8 +351,7 @@ jobs:
       - name: Push Helm Chart
         run: |
           helm repo index edge --url https://helm.nginx.com/edge
-          ls -la 
-          tree edge/
+          ls -la edge/
           git status
           echo git add -A
           echo git commit -m "NGINX Ingress Controller - Edge Release (latest)"
@@ -371,8 +362,8 @@ jobs:
     runs-on: ubuntu-18.04
     if: 
       failure() && 
-      github.repository == 'nginxinc/kubernetes-ingress' && 
-      github.ref == 'refs/heads/master'
+      github.repository == 'nginxinc/kubernetes-ingress' 
+      # github.ref == 'refs/heads/master'
     steps:
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@master
