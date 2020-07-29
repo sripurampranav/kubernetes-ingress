@@ -322,7 +322,7 @@ jobs:
           kind load docker-image ${{ matrix.image }}:${{ matrix.tag }} --name ${{ github.run_id }}
       - name: Install Chart
         run: |
-          helm install --set controller.image.repository=${{ matrix.image }},controller.image.tag=${{ matrix.tag }} ${{ matrix.image }} .
+          helm install --set controller.image.repository=${{ matrix.image }},controller.image.tag=${{ matrix.tag }},controller.service.type=NodePort ${{ matrix.image }} .
         working-directory: ${{ github.workspace }}/deployments/helm-chart
       - name: Test
         run: |
