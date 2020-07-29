@@ -325,7 +325,10 @@ jobs:
           helm install --set controller.image.repository=${{ matrix.image }},controller.image.tag=${{ matrix.tag }} ${{ matrix.image }} .
         working-directory: ${{ github.workspace }}/deployments/helm-chart
       - name: Test
-        run: helm list -A
+        run: |
+          helm list -A
+          kubectl get pods -A
+          kubectl get svc
 
   release-docker:
     name: Release Images
