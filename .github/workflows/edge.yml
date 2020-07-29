@@ -4,10 +4,19 @@ on:
   push:
     branches:
       - '**'
-      - '!release-*'
+      # - 'master'
   pull_request:
     branches:
       - master
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - closed
+
+defaults:
+  run:
+    shell: bash
 
 env:
   DOCKER_BUILDKIT: 1
@@ -141,7 +150,9 @@ jobs:
     name: Smoke Tests
     runs-on: ${{ matrix.os }}
     needs: [build, binary, unit-tests]
-    if: github.repository == 'nginxinc/kubernetes-ingress'
+    # if: 
+    #   github.event.pull_request.opened || 
+    #   github.event.pull_request.merged
     strategy:
       matrix:
         include:
@@ -265,13 +276,60 @@ jobs:
           name: test-results-${{ steps.k8s.outputs.cluster }}
           path: ${{ github.workspace }}/tests/tests-${{ steps.k8s.outputs.cluster }}.xml
 
+  helm-tests:
+    name: Helm Tests
+    runs-on: ${{ matrix.os }}
+    needs: [build, binary, unit-tests]
+    # if: 
+    #   github.event.pull_request.opened || 
+    #   github.event.pull_request.merged
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-18.04
+            path: build
+            file: Dockerfile
+            image: nginx-ingress
+            tag: ${{ github.sha }}
+            marker: 'ingresses'
+            type: oss
+          - os: ubuntu-18.04
+            path: build
+            file: DockerfileForPlus
+            image: nginx-plus-ingress
+            tag: ${{ github.sha }}
+            marker: 'ingresses'
+            type: plus
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Fetch N+ Certificates
+        if: matrix.type == 'plus'
+        env:
+          CRT: ${{ secrets.NGINX_CRT }}
+          KEY: ${{ secrets.NGINX_KEY }}
+        run: |
+          echo "${CRT}" | base64 --decode > nginx-repo.crt
+          echo "${KEY}" | base64 --decode > nginx-repo.key
+      - name: Build ${{ matrix.image }} Container
+        run: |
+          make container BUILD_IN_CONTAINER=1 DOCKERFILEPATH=${{ matrix.path }} \
+          DOCKERFILE=${{ matrix.file }} PREFIX=${{ matrix.image }} TAG=${{ matrix.tag }}
+      - name: Deploy Kubernetes
+        id: k8s
+        run: |
+          kind create cluster --name ${{ github.run_id }} --kubeconfig kube-${{ github.run_id }} --wait ${{ env.K8S_TIMEOUT }}
+          kind load docker-image ${{ matrix.image }}:${{ matrix.tag }} --name ${{ github.run_id }}
+      - name: Install Chart
+        run: |
+          helm install --set controller.image.repository=${{ matrix.image }},controller.image.tag=${{ matrix.tag }} ${{ matrix.image }} .
+        working-directory: ${{ github.workspace }}/deployments/helm-chart
+
   release-docker:
     name: Release Images
     runs-on: ${{ matrix.os }}
     needs: [smoke-tests]
-    # if: 
-    #   github.repository == 'nginxinc/kubernetes-ingress' && 
-    #   github.ref == 'refs/heads/master'
+    # if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     strategy:
       matrix:
         include:
@@ -305,9 +363,8 @@ jobs:
   package-helm:
     name: Package Helm Chart
     runs-on: ubuntu-18.04
-    needs: [smoke-tests, release-docker]
-    if: github.repository == 'nginxinc/kubernetes-ingress'
-      # github.ref == 'refs/heads/master'
+    needs: [smoke-tests, helm-tests, release-docker]
+    # if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
@@ -327,13 +384,11 @@ jobs:
   release-helm:
     name: Release Helm Chart
     runs-on: ubuntu-18.04
-    needs: [smoke-tests, release-docker, package-helm]
+    needs: [smoke-tests, helm-tests, release-docker, package-helm]
     env:
       GIT_COMMITTER_NAME: NGINX Kubernetes Team
       GIT_COMMITTER_EMAIL: kubernetes@nginx.com
-    if: 
-      github.repository == 'nginxinc/kubernetes-ingress'
-      # github.ref == 'refs/heads/master'
+    # if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
