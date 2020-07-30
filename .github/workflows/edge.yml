@@ -328,8 +328,9 @@ jobs:
           --set controller.service.type=NodePort 
           --set controller.service.httpPort.nodePort=32000 
           --set controller.service.httpsPort.nodePort=32001 
-          .
-        working-directory: ${{ github.workspace }}/deployments/helm-chart
+          ${{ matrix.image }} 
+          ./helm-chart
+        working-directory: ${{ github.workspace }}/deployments
       - name: Test
         run: |
           helm list -A
