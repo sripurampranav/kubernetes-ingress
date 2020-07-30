@@ -281,8 +281,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: [build, binary, unit-tests]
     env:
-      NGINX_HTTP_PORT: 320000
-      NGINX_HTTPS_PORT: 320001
+      NGINX_HTTP_PORT: 32000
+      NGINX_HTTPS_PORT: 32001
     # if: 
     #   github.event.pull_request.opened || 
     #   github.event.pull_request.merged
@@ -347,7 +347,7 @@ jobs:
   release-docker:
     name: Release Images
     runs-on: ${{ matrix.os }}
-    needs: [smoke-tests]
+    needs: [smoke-tests, helm-tests]
     # if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     strategy:
       matrix:
