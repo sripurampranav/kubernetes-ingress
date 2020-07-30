@@ -337,12 +337,12 @@ jobs:
           helm list -A
           kubectl get pods -A
           kubectl get svc
-          kubectl get pods -l helm.sh/chart=nginx-ingress-edge
-          # while [[ $(kubectl get pods -l helm.sh/chart=nginx-ingress-edge -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do 
-          # echo "Waiting for Ingress Controller pod" && sleep 1; 
-          # done
-          # curl https://localhost:${{ env.NGINX_HTTP_PORT }}
-          # curl -k https://localhost:${{ env.NGINX_HTTPS_PORT }}
+          kubectl get pods -l app=nginx-ingress-edge
+          while [[ $(kubectl get pods -l app=nginx-ingress-edge -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do 
+          echo "Waiting for Ingress Controller pod" && sleep 1; 
+          done
+          curl https://localhost:${{ env.NGINX_HTTP_PORT }}
+          curl -k https://localhost:${{ env.NGINX_HTTPS_PORT }}
 
   release-docker:
     name: Release Images
