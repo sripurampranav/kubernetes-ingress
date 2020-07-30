@@ -335,12 +335,11 @@ jobs:
       - name: Test
         run: |
           helm list -A
-          kubectl get pods -A
           kubectl get svc
-          kubectl get pods -l app=${{ matrix.type }}-nginx-ingress
           while [[ $(kubectl get pods -l app=${{ matrix.type }}-nginx-ingress -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do 
           sleep 2; 
           done
+          kubectl describe pod -l app=${{ matrix.type }}-nginx-ingress
           curl https://localhost:${{ env.NGINX_HTTP_PORT }}
           curl -k https://localhost:${{ env.NGINX_HTTPS_PORT }}
 
