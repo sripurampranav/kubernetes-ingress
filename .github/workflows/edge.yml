@@ -337,9 +337,9 @@ jobs:
           helm list -A
           kubectl get pods -A
           kubectl get svc
-          kubectl get pods -l app=nginx-ingress-edge
-          while [[ $(kubectl get pods -l app=nginx-ingress-edge -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do 
-          echo "Waiting for Ingress Controller pod" && sleep 1; 
+          kubectl get pods -l app=${{ matrix.type }}-nginx-ingress
+          while [[ $(kubectl get pods -l app=${{ matrix.type }}-nginx-ingress -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do 
+          sleep 2; 
           done
           curl https://localhost:${{ env.NGINX_HTTP_PORT }}
           curl -k https://localhost:${{ env.NGINX_HTTPS_PORT }}
