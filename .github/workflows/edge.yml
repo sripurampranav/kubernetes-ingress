@@ -321,14 +321,22 @@ jobs:
           kind create cluster --name ${{ github.run_id }} --wait ${{ env.K8S_TIMEOUT }}
           kind load docker-image ${{ matrix.image }}:${{ matrix.tag }} --name ${{ github.run_id }}
       - name: Install Chart
-        run: |
-          helm install --set controller.image.repository=${{ matrix.image }},controller.image.tag=${{ matrix.tag }},controller.service.type=NodePort ${{ matrix.image }} .
+        run: >
+          helm install 
+          --set controller.image.repository=${{ matrix.image }} 
+          --set controller.image.tag=${{ matrix.tag }} 
+          --set controller.service.type=NodePort 
+          --set controller.service.httpPort.nodePort=32000 
+          --set controller.service.httpsPort.nodePort=32001 
+          .
         working-directory: ${{ github.workspace }}/deployments/helm-chart
       - name: Test
         run: |
           helm list -A
           kubectl get pods -A
           kubectl get svc
+          curl https://localhost:32000
+          curl -k https://localhost:32001
 
   release-docker:
     name: Release Images
