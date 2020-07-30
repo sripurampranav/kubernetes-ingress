@@ -280,6 +280,9 @@ jobs:
     name: Helm Tests
     runs-on: ${{ matrix.os }}
     needs: [build, binary, unit-tests]
+    env:
+      NGINX_HTTP_PORT: 320000
+      NGINX_HTTPS_PORT: 320001
     # if: 
     #   github.event.pull_request.opened || 
     #   github.event.pull_request.merged
@@ -321,25 +324,25 @@ jobs:
       - name: Install Chart
         run: >
           helm install 
-          --set controller.image.repository=${{ matrix.image }} 
-          --set controller.image.tag=${{ matrix.tag }} 
-          --set controller.service.type=NodePort 
-          --set controller.service.httpPort.nodePort=32000 
-          --set controller.service.httpsPort.nodePort=32001 
-          ${{ matrix.type }} 
-          ./helm-chart
-        working-directory: ${{ github.workspace }}/deployments
+          --set controller.image.repository=${{ matrix.image }}
+          --set controller.image.tag=${{ matrix.tag }}
+          --set controller.service.type=NodePort
+          --set controller.service.httpPort.nodePort=${{ env.NGINX_HTTP_PORT }}
+          --set controller.service.httpsPort.nodePort=${{ env.NGINX_HTTPS_PORT }}
+          ${{ matrix.type }}
+          .
+        working-directory: ${{ github.workspace }}/deployments/helm-chart
       - name: Test
         run: |
           helm list -A
           kubectl get pods -A
           kubectl get svc
-          kubectl get pods -l app.kubernetes.io/name=${{ matrix.type }}-nginx-ingress
-          # while [[ $(kubectl get pods -l app.kubernetes.io/name=${{ matrix.type }}-nginx-ingress -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do 
+          kubectl get pods -l helm.sh/chart=nginx-ingress-edge
+          # while [[ $(kubectl get pods -l helm.sh/chart=nginx-ingress-edge -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do 
           # echo "Waiting for Ingress Controller pod" && sleep 1; 
           # done
-          # curl https://localhost:32000
-          # curl -k https://localhost:32001
+          # curl https://localhost:${{ env.NGINX_HTTP_PORT }}
+          # curl -k https://localhost:${{ env.NGINX_HTTPS_PORT }}
 
   release-docker:
     name: Release Images
