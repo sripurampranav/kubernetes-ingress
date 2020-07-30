@@ -328,7 +328,7 @@ jobs:
           --set controller.service.type=NodePort 
           --set controller.service.httpPort.nodePort=32000 
           --set controller.service.httpsPort.nodePort=32001 
-          ${{ matrix.image }} 
+          ${{ matrix.type }} 
           ./helm-chart
         working-directory: ${{ github.workspace }}/deployments
       - name: Test
@@ -336,6 +336,9 @@ jobs:
           helm list -A
           kubectl get pods -A
           kubectl get svc
+          while [[ $(kubectl get pods -l app.kubernetes.io/name=${{ matrix.type }}-nginx-ingress -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do 
+          echo "Waiting for Ingress Controller pod" && sleep 1; 
+          done
           curl https://localhost:32000
           curl -k https://localhost:32001
 
