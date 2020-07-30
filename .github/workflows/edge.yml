@@ -291,14 +291,12 @@ jobs:
             file: Dockerfile
             image: nginx-ingress
             tag: ${{ github.sha }}
-            marker: 'ingresses'
             type: oss
           - os: ubuntu-18.04
             path: build
             file: DockerfileForPlus
             image: nginx-plus-ingress
             tag: ${{ github.sha }}
-            marker: 'ingresses'
             type: plus
     steps:
       - name: Checkout Repository
@@ -336,11 +334,12 @@ jobs:
           helm list -A
           kubectl get pods -A
           kubectl get svc
-          while [[ $(kubectl get pods -l app.kubernetes.io/name=${{ matrix.type }}-nginx-ingress -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do 
-          echo "Waiting for Ingress Controller pod" && sleep 1; 
-          done
-          curl https://localhost:32000
-          curl -k https://localhost:32001
+          kubectl get pods -l app.kubernetes.io/name=${{ matrix.type }}-nginx-ingress
+          # while [[ $(kubectl get pods -l app.kubernetes.io/name=${{ matrix.type }}-nginx-ingress -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do 
+          # echo "Waiting for Ingress Controller pod" && sleep 1; 
+          # done
+          # curl https://localhost:32000
+          # curl -k https://localhost:32001
 
   release-docker:
     name: Release Images
