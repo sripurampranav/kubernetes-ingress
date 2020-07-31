@@ -289,18 +289,18 @@ jobs:
     strategy:
       matrix:
         include:
-          # - os: ubuntu-18.04
-          #   path: build
-          #   file: Dockerfile
-          #   image: nginx-ingress
-          #   tag: ${{ github.sha }}
-          #   type: oss
           - os: ubuntu-18.04
             path: build
-            file: DockerfileForPlus
-            image: nginx-plus-ingress
+            file: Dockerfile
+            image: nginx-ingress
             tag: ${{ github.sha }}
-            type: plus
+            type: oss
+          # - os: ubuntu-18.04
+          #   path: build
+          #   file: DockerfileForPlus
+          #   image: nginx-plus-ingress
+          #   tag: ${{ github.sha }}
+          #   type: plus
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
@@ -341,8 +341,8 @@ jobs:
           kubectl describe pod -l app=${{ matrix.type }}-nginx-ingress
           kubectl get pods -A
           kubectl logs -l app=${{ matrix.type }}-nginx-ingress --previous
-          kubectl port-forward -l app=${{ matrix.type }}-nginx-ingress 8080:80
-          kubectl port-forward -l app=${{ matrix.type }}-nginx-ingress 8443:443
+          kubectl port-forward nginx-ingress/${{ matrix.type }}-nginx-ingress 8080:80
+          kubectl port-forward nginx-ingress/${{ matrix.type }}-nginx-ingress 8443:443
           # while [[ $(kubectl get pods -l app=${{ matrix.type }}-nginx-ingress -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do 
           # sleep 2; 
           # done
