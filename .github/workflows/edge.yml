@@ -336,6 +336,7 @@ jobs:
         run: |
           helm list -A
           kubectl get svc
+          kubectl get deploy
           sleep 45
           kubectl describe pod -l app=${{ matrix.type }}-nginx-ingress
           kubectl logs -l app=${{ matrix.type }}-nginx-ingress --previous
@@ -438,7 +439,6 @@ jobs:
     runs-on: ubuntu-18.04
     if: 
       failure() && 
-      github.repository == 'nginxinc/kubernetes-ingress' 
       # github.ref == 'refs/heads/master'
     steps:
       - name: Slack Notification
