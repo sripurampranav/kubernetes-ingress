@@ -338,6 +338,7 @@ jobs:
           kubectl get svc
           sleep 45
           kubectl describe pod -l app=${{ matrix.type }}-nginx-ingress
+          kubectl logs -l app=${{ matrix.type }}-nginx-ingress --previous
           # while [[ $(kubectl get pods -l app=${{ matrix.type }}-nginx-ingress -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do 
           # sleep 2; 
           # done
