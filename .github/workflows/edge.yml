@@ -339,9 +339,10 @@ jobs:
           kubectl get deploy
           sleep 45
           kubectl describe pod -l app=${{ matrix.type }}-nginx-ingress
+          kubectl get pods -A
           kubectl logs -l app=${{ matrix.type }}-nginx-ingress --previous
-          kubectl port-forward ${{ matrix.type }}-nginx-ingress 8080:80
-          kubectl port-forward ${{ matrix.type }}-nginx-ingress 8443:443
+          kubectl port-forward -l app=${{ matrix.type }}-nginx-ingress 8080:80
+          kubectl port-forward -l app=${{ matrix.type }}-nginx-ingress 8443:443
           # while [[ $(kubectl get pods -l app=${{ matrix.type }}-nginx-ingress -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do 
           # sleep 2; 
           # done
