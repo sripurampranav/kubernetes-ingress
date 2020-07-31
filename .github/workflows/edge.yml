@@ -438,7 +438,7 @@ jobs:
     name: Report Failures
     runs-on: ubuntu-18.04
     if: 
-      failure() && 
+      failure() 
       # github.ref == 'refs/heads/master'
     steps:
       - name: Slack Notification
