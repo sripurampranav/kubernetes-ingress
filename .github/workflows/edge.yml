@@ -327,8 +327,6 @@ jobs:
           --set controller.image.repository=${{ matrix.image }}
           --set controller.image.tag=${{ matrix.tag }}
           --set controller.service.type=NodePort
-          # --set controller.service.httpPort.nodePort=${{ env.NGINX_HTTP_PORT }}
-          # --set controller.service.httpsPort.nodePort=${{ env.NGINX_HTTPS_PORT }}
           ${{ matrix.type }}
           .
         working-directory: ${{ github.workspace }}/deployments/helm-chart
