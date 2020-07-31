@@ -327,28 +327,19 @@ jobs:
           --set controller.image.repository=${{ matrix.image }}
           --set controller.image.tag=${{ matrix.tag }}
           --set controller.service.type=NodePort
-          --set controller.service.httpPort.nodePort=${{ env.NGINX_HTTP_PORT }}
-          --set controller.service.httpsPort.nodePort=${{ env.NGINX_HTTPS_PORT }}
+          # --set controller.service.httpPort.nodePort=${{ env.NGINX_HTTP_PORT }}
+          # --set controller.service.httpsPort.nodePort=${{ env.NGINX_HTTPS_PORT }}
           ${{ matrix.type }}
           .
         working-directory: ${{ github.workspace }}/deployments/helm-chart
       - name: Test
         run: |
-          helm list -A
-          kubectl get svc
-          kubectl get deploy
-          sleep 45
-          kubectl describe pod -l app=${{ matrix.type }}-nginx-ingress
-          kubectl get pods -A
-          kubectl logs -l app=${{ matrix.type }}-nginx-ingress --previous
-          kubectl port-forward nginx-ingress/${{ matrix.type }}-nginx-ingress 8080:80
-          kubectl port-forward nginx-ingress/${{ matrix.type }}-nginx-ingress 8443:443
-          # while [[ $(kubectl get pods -l app=${{ matrix.type }}-nginx-ingress -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do 
-          # sleep 2; 
-          # done
+          while [[ $(kubectl get pods -l app=${{ matrix.type }}-nginx-ingress -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do 
+          sleep 1; 
+          done
           # kubectl describe pod -l app=${{ matrix.type }}-nginx-ingress
-          curl https://localhost:8080
-          curl -k https://localhost:8443
+          docker run --rm curlimages/curl:7.71.1 http://${{ matrix.type }}-nginx-ingress
+          docker run --rm curlimages/curl:7.71.1 -k https://${{ matrix.type }}-nginx-ingress
 
   release-docker:
     name: Release Images
