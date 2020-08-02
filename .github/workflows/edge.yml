@@ -335,9 +335,9 @@ jobs:
         run: |
           kubectl get pods
           kubectl get svc
-          kubectl port-forward service/${{ matrix.type }}-nginx-ingress 80:80 &
-          kubectl port-forward service/${{ matrix.type }}-nginx-ingress 443:443 &
-          curl http://localhost
+          kubectl port-forward service/${{ matrix.type }}-nginx-ingress 8080:80 &
+          kubectl port-forward service/${{ matrix.type }}-nginx-ingress 8443:443 &
+          curl http://localhost:8080
           # kubectl run -i ${{ matrix.type }}-http --image=curlimages/curl:7.71.1 -- http://${{ matrix.type }}-nginx-ingress
           # kubectl run -i ${{ matrix.type }}-https --image=curlimages/curl:7.71.1 -- https://${{ matrix.type }}-nginx-ingress -k
 
