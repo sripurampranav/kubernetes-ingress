@@ -329,7 +329,7 @@ jobs:
           --set controller.image.repository=${{ matrix.image }}
           --set controller.image.tag=${{ matrix.tag }}
           --set controller.service.type=NodePort
-          --wait --timeout 60
+          --wait
         working-directory: ${{ github.workspace }}/deployments/helm-chart
       - name: Test
         run: |
