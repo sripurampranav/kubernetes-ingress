@@ -333,8 +333,8 @@ jobs:
         working-directory: ${{ github.workspace }}/deployments/helm-chart
       - name: Test
         run: |
-          kubectl run -i ${{ matrix.type }}-http --image=curlimages/curl:7.71.1 -- -s http://${{ matrix.type }}-nginx-ingress
-          kubectl run -i ${{ matrix.type }}-https --image=curlimages/curl:7.71.1 -- -s https://${{ matrix.type }}-nginx-ingress
+          kubectl run -i ${{ matrix.type }}-http --image=curlimages/curl:7.71.1 -- http://${{ matrix.type }}-nginx-ingress
+          kubectl run -i ${{ matrix.type }}-https --image=curlimages/curl:7.71.1 -- https://${{ matrix.type }}-nginx-ingress
 
   release-docker:
     name: Release Images
