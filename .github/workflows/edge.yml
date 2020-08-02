@@ -324,13 +324,12 @@ jobs:
       - name: Install Chart
         run: >
           helm install 
+          ${{ matrix.type }}
+          .
           --set controller.image.repository=${{ matrix.image }}
           --set controller.image.tag=${{ matrix.tag }}
           --set controller.service.type=NodePort
-          --wait
-          --timeout 60
-          ${{ matrix.type }}
-          .
+          --wait --timeout 60
         working-directory: ${{ github.workspace }}/deployments/helm-chart
       - name: Test
         run: |
