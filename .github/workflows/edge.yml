@@ -334,7 +334,8 @@ jobs:
       - name: Test
         run: |
           kubectl get pods
-          kubectl run -i ${{ matrix.type }}-http --image=curlimages/curl:7.71.1 -- http://${{ matrix.type }}-nginx-ingress
+          kubectl get svc
+          # kubectl run -i ${{ matrix.type }}-http --image=curlimages/curl:7.71.1 -- http://${{ matrix.type }}-nginx-ingress
           # kubectl run -i ${{ matrix.type }}-https --image=curlimages/curl:7.71.1 -- https://${{ matrix.type }}-nginx-ingress -k
 
   release-docker:
