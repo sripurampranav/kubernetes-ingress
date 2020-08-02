@@ -336,8 +336,9 @@ jobs:
           sleep 1; 
           done
           # kubectl describe pod -l app=${{ matrix.type }}-nginx-ingress
-          docker run --rm curlimages/curl:7.71.1 http://${{ matrix.type }}-nginx-ingress
-          docker run --rm curlimages/curl:7.71.1 -k https://${{ matrix.type }}-nginx-ingress
+          kubectl get svc
+          kubectl run -i ${{ matrix.type }} --image=curlimages/curl:7.71.1 -- http://${{ matrix.type }}-nginx-ingress
+          kubectl run -i ${{ matrix.type }} --image=curlimages/curl:7.71.1 -- https://${{ matrix.type }}-nginx-ingress
 
   release-docker:
     name: Release Images
