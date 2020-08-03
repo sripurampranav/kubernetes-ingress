@@ -335,11 +335,10 @@ jobs:
         run: |
           kubectl port-forward service/${{ matrix.type }}-nginx-ingress 8080:80 &
           kubectl port-forward service/${{ matrix.type }}-nginx-ingress 8443:443 &
-      - name: Test
-        run: |
-          netstat -tulpn
-          curl -s http://localhost:8080
-          curl -ks https://localhost:8443
+      - name: Test HTTP
+        run: curl -s http://localhost:8080
+      - name: Test HTTPS
+        run: curl -ks https://localhost:8443
 
   release-docker:
     name: Release Images
