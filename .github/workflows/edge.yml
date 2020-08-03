@@ -330,8 +330,6 @@ jobs:
           --set controller.image.tag=${{ matrix.tag }}
           --set controller.service.type=NodePort
           --wait
-          kubectl port-forward service/${{ matrix.type }}-nginx-ingress 8080:80 &
-          kubectl port-forward service/${{ matrix.type }}-nginx-ingress 8443:443 &
         working-directory: ${{ github.workspace }}/deployments/helm-chart
       - name: Expose Test Ingresses
         run: |
