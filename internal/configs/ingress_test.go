@@ -126,6 +126,26 @@ func TestPathOrDefaultReturnActual(t *testing.T) {
 	}
 }
 
+func TestGenerateIngressPathExact(t *testing.T) {
+	pathType := v1beta1.PathTypeExact
+	path := "/path/to/resource"
+	expected := "= /path/to/resource"
+	result := generateIngressPath(path, pathType)
+	if result != expected {
+		t.Errorf("generateIngressPath(%v, %v) returned %v, but expected %v", path, pathType, result, expected)
+	}
+}
+
+func TestGenerateIngressPath(t *testing.T) {
+	pathType := v1beta1.PathTypeImplementationSpecific
+	path := "/path/to/resource"
+	expected := "/path/to/resource"
+	result := generateIngressPath(path, pathType)
+	if result != expected {
+		t.Errorf("generateIngressPath(%v, %v) returned %v, but expected %v", path, pathType, result, expected)
+	}
+}
+
 func createExpectedConfigForCafeIngressEx() version1.IngressNginxConfig {
 	coffeeUpstream := version1.Upstream{
 		Name:             "default-cafe-ingress-cafe.example.com-coffee-svc-80",
