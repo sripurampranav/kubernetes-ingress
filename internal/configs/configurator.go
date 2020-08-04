@@ -18,7 +18,7 @@ import (
 
 	"github.com/golang/glog"
 	api_v1 "k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
+	networking "k8s.io/api/networking/v1beta1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/nginxinc/kubernetes-ingress/internal/configs/version1"
@@ -879,14 +879,14 @@ func getFileNameForTransportServerFromKey(key string) string {
 }
 
 // HasIngress checks if the Ingress resource is present in NGINX configuration.
-func (cnf *Configurator) HasIngress(ing *extensions.Ingress) bool {
+func (cnf *Configurator) HasIngress(ing *networking.Ingress) bool {
 	name := objectMetaToFileName(&ing.ObjectMeta)
 	_, exists := cnf.ingresses[name]
 	return exists
 }
 
 // HasMinion checks if the minion Ingress resource of the master is present in NGINX configuration.
-func (cnf *Configurator) HasMinion(master *extensions.Ingress, minion *extensions.Ingress) bool {
+func (cnf *Configurator) HasMinion(master *networking.Ingress, minion *networking.Ingress) bool {
 	masterName := objectMetaToFileName(&master.ObjectMeta)
 
 	if _, exists := cnf.minions[masterName]; !exists {
@@ -990,7 +990,7 @@ func (cnf *Configurator) updateApResources(ingEx *IngressEx) map[string]string {
 		policyContent := generateApResourceFileContent(ingEx.AppProtectPolicy)
 		cnf.nginxManager.CreateAppProtectResourceFile(policyFileName, policyContent)
 		apRes[appProtectPolicyKey] = policyFileName
-	
+
 	}
 
 	if ingEx.AppProtectLogConf != nil {
