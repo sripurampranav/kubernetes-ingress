@@ -340,7 +340,7 @@ func (lbc *LoadBalancerController) addServiceHandler(handlers cache.ResourceEven
 func (lbc *LoadBalancerController) addIngressHandler(handlers cache.ResourceEventHandlerFuncs) {
 	lbc.ingressLister.Store, lbc.ingressController = cache.NewInformer(
 		cache.NewListWatchFromClient(
-			lbc.client.ExtensionsV1beta1().RESTClient(),
+			lbc.client.NetworkingV1beta1().RESTClient(),
 			"ingresses",
 			lbc.namespace,
 			fields.Everything()),

@@ -257,12 +257,18 @@ func generateNginxCfg(ingEx *IngressEx, pems map[string]string, apResources map[
 	}
 }
 
-func createLocation(path string, upstream version1.Upstream, cfg *ConfigParams, websocket bool, rewrite string, ssl bool, grpc bool, proxySSLName string, pathType *networking.PathType) version1.Location {
-	if *pathType == networking.PathTypeExact {
+func generateIngressPath(path string, pathType networking.PathType) string {
+	if pathType == networking.PathTypeExact {
 		path = "= " + path
 	}
+
+	return path
+}
+
+func createLocation(path string, upstream version1.Upstream, cfg *ConfigParams, websocket bool, rewrite string, ssl bool, grpc bool, proxySSLName string, pathType *networking.PathType) version1.Location {
+	newPath := generateIngressPath(path, *pathType)
 	loc := version1.Location{
-		Path:                 path,
+		Path:                 newPath,
 		Upstream:             upstream,
 		ProxyConnectTimeout:  cfg.ProxyConnectTimeout,
 		ProxyReadTimeout:     cfg.ProxyReadTimeout,
