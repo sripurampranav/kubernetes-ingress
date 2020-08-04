@@ -336,9 +336,9 @@ jobs:
           kubectl port-forward service/${{ matrix.type }}-nginx-ingress 8080:80 &
           kubectl port-forward service/${{ matrix.type }}-nginx-ingress 8443:443 &
       - name: Test HTTP
-        run: curl http://localhost:8080
+        run: curl http://localhost:8080 | grep -i nginx
       - name: Test HTTPS
-        run: curl -ks https://localhost:8443
+        run: curl -ks https://localhost:8443 | grep -i nginx
 
   release-docker:
     name: Release Images
