@@ -181,14 +181,8 @@ func generateNginxCfg(ingEx *IngressEx, pems map[string]string, apResources map[
 
 			ssl := sslServices[path.Backend.ServiceName] || staticParams.SpiffeCerts
 			proxySSLName := generateProxySSLName(path.Backend.ServiceName, ingEx.Ingress.Namespace)
-			var pathType networking.PathType
-			if path.PathType == nil {
-				pathType = networking.PathTypePrefix
-			} else {
-				pathType = *path.PathType
-			}
 			loc := createLocation(pathOrDefault(path.Path), upstreams[upsName], &cfgParams, wsServices[path.Backend.ServiceName], rewrites[path.Backend.ServiceName],
-				ssl, grpcServices[path.Backend.ServiceName], proxySSLName, &pathType)
+				ssl, grpcServices[path.Backend.ServiceName], proxySSLName, path.PathType)
 			if isMinion && ingEx.JWTKey.Name != "" {
 				loc.JWTAuth = &version1.JWTAuth{
 					Key:   jwtKeyFileName,
@@ -257,8 +251,11 @@ func generateNginxCfg(ingEx *IngressEx, pems map[string]string, apResources map[
 	}
 }
 
-func generateIngressPath(path string, pathType networking.PathType) string {
-	if pathType == networking.PathTypeExact {
+func generateIngressPath(path string, pathType *networking.PathType) string {
+	if pathType == nil {
+		return path
+	}
+	if *pathType == networking.PathTypeExact {
 		path = "= " + path
 	}
 
@@ -266,9 +263,8 @@ func generateIngressPath(path string, pathType networking.PathType) string {
 }
 
 func createLocation(path string, upstream version1.Upstream, cfg *ConfigParams, websocket bool, rewrite string, ssl bool, grpc bool, proxySSLName string, pathType *networking.PathType) version1.Location {
-	newPath := generateIngressPath(path, *pathType)
 	loc := version1.Location{
-		Path:                 newPath,
+		Path:                 generateIngressPath(path, pathType),
 		Upstream:             upstream,
 		ProxyConnectTimeout:  cfg.ProxyConnectTimeout,
 		ProxyReadTimeout:     cfg.ProxyReadTimeout,

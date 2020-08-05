@@ -15,7 +15,7 @@ spec:
   - host: cafe.example.com
     http:
       paths:
-      - path: "/tea"
+      - path: /tea
         backend:
           serviceName: tea-svc
           servicePort: 80
@@ -44,10 +44,10 @@ Here is a breakdown of what this Ingress resource definition means:
 
 Starting from Kubernetes 1.18, you can use the following new features:
 
-* The host field supports wildcard domain names, such as *.example.com.
-* The path supports different matching rules with the new field PathType, which takes the following values: Prefix for prefix-based matching, Exact for exact matching and ImplementationSpecific, which is the default type and is the same as Prefix. For example:
-```yaml
-   - path: /tea
+* The host field supports wildcard domain names, such as `*.example.com`.
+* The path supports different matching rules with the new field `PathType`, which takes the following values: `Prefix` for prefix-based matching, `Exact` for exact matching and `ImplementationSpecific`, which is the default type and is the same as `Prefix`. For example:
+  ```yaml
+    - path: /tea
       pathType: Prefix
       backend:
         serviceName: tea-svc
@@ -57,12 +57,12 @@ Starting from Kubernetes 1.18, you can use the following new features:
       backend:
         serviceName: tea-svc
         servicePort: 80
-   - path: /coffee
+    - path: /coffee
       pathType: ImplementationSpecific # default
       backend:
         serviceName: coffee-svc
         servicePort: 80
-```
+  ```
 
 ## Restrictions
 

@@ -126,23 +126,38 @@ func TestPathOrDefaultReturnActual(t *testing.T) {
 	}
 }
 
-func TestGenerateIngressPathExact(t *testing.T) {
-	pathType := v1beta1.PathTypeExact
-	path := "/path/to/resource"
-	expected := "= /path/to/resource"
-	result := generateIngressPath(path, pathType)
-	if result != expected {
-		t.Errorf("generateIngressPath(%v, %v) returned %v, but expected %v", path, pathType, result, expected)
-	}
-}
-
 func TestGenerateIngressPath(t *testing.T) {
-	pathType := v1beta1.PathTypeImplementationSpecific
-	path := "/path/to/resource"
-	expected := "/path/to/resource"
-	result := generateIngressPath(path, pathType)
-	if result != expected {
-		t.Errorf("generateIngressPath(%v, %v) returned %v, but expected %v", path, pathType, result, expected)
+	tests := []struct {
+		pathType v1beta1.PathType
+		path     string
+		expected string
+	}{
+		{
+			pathType: v1beta1.PathTypeExact,
+			path:     "/path/to/resource",
+			expected: "= /path/to/resource",
+		},
+		{
+			pathType: v1beta1.PathTypePrefix,
+			path:     "/path/to/resource",
+			expected: "/path/to/resource",
+		},
+		{
+			pathType: v1beta1.PathTypeImplementationSpecific,
+			path:     "/path/to/resource",
+			expected: "/path/to/resource",
+		},
+		{
+			pathType: v1beta1.PathType(""),
+			path:     "/path/to/resource",
+			expected: "/path/to/resource",
+		},
+	}
+	for _, test := range tests {
+		result := generateIngressPath(test.path, &test.pathType)
+		if result != test.expected {
+			t.Errorf("generateIngressPath(%v, %v) returned %v, but expected %v", test.path, test.pathType, result, test.expected)
+		}
 	}
 }
 
