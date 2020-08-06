@@ -127,34 +127,37 @@ func TestPathOrDefaultReturnActual(t *testing.T) {
 }
 
 func TestGenerateIngressPath(t *testing.T) {
+	exact := v1beta1.PathTypeExact
+	prefix := v1beta1.PathTypePrefix
+	impSpec := v1beta1.PathTypeImplementationSpecific
 	tests := []struct {
-		pathType v1beta1.PathType
+		pathType *v1beta1.PathType
 		path     string
 		expected string
 	}{
 		{
-			pathType: v1beta1.PathTypeExact,
+			pathType: &exact,
 			path:     "/path/to/resource",
 			expected: "= /path/to/resource",
 		},
 		{
-			pathType: v1beta1.PathTypePrefix,
+			pathType: &prefix,
 			path:     "/path/to/resource",
 			expected: "/path/to/resource",
 		},
 		{
-			pathType: v1beta1.PathTypeImplementationSpecific,
+			pathType: &impSpec,
 			path:     "/path/to/resource",
 			expected: "/path/to/resource",
 		},
 		{
-			pathType: v1beta1.PathType(""),
+			pathType: nil,
 			path:     "/path/to/resource",
 			expected: "/path/to/resource",
 		},
 	}
 	for _, test := range tests {
-		result := generateIngressPath(test.path, &test.pathType)
+		result := generateIngressPath(test.path, test.pathType)
 		if result != test.expected {
 			t.Errorf("generateIngressPath(%v, %v) returned %v, but expected %v", test.path, test.pathType, result, test.expected)
 		}
