@@ -1,0 +1,283 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - 'master'
+  schedule:
+    - cron:  '* 4 * * *'
+
+env:
+  DOCKER_BUILDKIT: 1
+  GOLANG_VERSION: 1.14
+  PYTHON_VERSION: 3.8
+  K8S_TIMEOUT: 1m
+  HELM_CHART_DIR: deployments/helm-chart
+  HELM_CHART_VERSION: 0.0.0-edge
+
+jobs:
+
+  binary:
+    name: Build Binary
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Build Binary
+        run: make binary BUILD_IN_CONTAINER=0
+        env:
+          GOFLAGS: '-mod=vendor -gcflags=-trimpath=${{ github.workspace }} -asmflags=-trimpath=${{ github.workspace }}'
+      - name: Upload Binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: nginx-ingress
+          path: ${{ github.workspace }}/nginx-ingress
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Setup Golang Environment
+        uses: actions/setup-go@v2
+        with:
+          go-version: '${{ env.GOLANG_VERSION }}'
+      - name: Run Tests
+        run: go test ./...
+
+  build:
+    name: Build Docker Images
+    runs-on: ${{ matrix.os }}
+    needs: [binary, unit-tests]
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-18.04
+            file: build/Dockerfile
+            path: '.'
+            target: local
+            image: nginx-ingress
+            type: oss
+          - os: ubuntu-18.04
+            file: build/DockerfileForAlpine
+            path: '.'
+            target: local
+            image: nginx-ingress-alpine
+            type: oss
+          - os: ubuntu-18.04
+            file: build/DockerfileForPlus
+            path: '.'
+            target: local
+            image: nginx-plus-ingress
+            type: plus
+          - os: ubuntu-18.04
+            file: build/DockerfileWithOpentracing
+            path: '.'
+            target: local
+            image: nginx-ingress-opentracing
+            type: oss
+          - os: ubuntu-18.04
+            file: build/DockerfileWithOpentracingForPlus
+            path: '.'
+            target: local
+            image: nginx-plus-ingress-opentracing
+            type: plus
+          - os: ubuntu-18.04
+            file: build/openshift/Dockerfile
+            path: '.'
+            target: local
+            image: nginx-ingress-openshift
+            type: oss
+          - os: ubuntu-18.04
+            file: build/openshift/DockerfileForPlus
+            path: '.'
+            target: local
+            image: nginx-plus-ingress-openshift
+            type: plus
+          - os: ubuntu-18.04
+            file: build/appprotect/DockerfileWithAppProtectForPlus
+            path: '.'
+            target: local
+            image: nginx-plus-ingress-ap
+            type: plus-ap
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Retrieve Binary
+        uses: actions/download-artifact@v2
+        with:
+          name: nginx-ingress
+          path: ${{ github.workspace }}/nginx-ingress
+      - name: Fetch N+ Certificates
+        if: matrix.type == 'plus'
+        env:
+          CRT: ${{ secrets.NGINX_CRT }}
+          KEY: ${{ secrets.NGINX_KEY }}
+        run: |
+          echo "${CRT}" | base64 --decode > nginx-repo.crt
+          echo "${KEY}" | base64 --decode > nginx-repo.key
+      - name: Fetch N+ AppProtect Certificates
+        if: matrix.type == 'plus-ap'
+        env:
+          CRT: ${{ secrets.NGINX_AP_CRT }}
+          KEY: ${{ secrets.NGINX_AP_KEY }}
+        run: |
+          echo "${CRT}" | base64 --decode > nginx-repo.crt
+          echo "${KEY}" | base64 --decode > nginx-repo.key
+      - name: Build Docker Image ${{ matrix.image }}
+        uses: docker/build-push-action@v1
+        with:
+          repository: ${{ matrix.image }}
+          dockerfile: ${{ matrix.file }}
+          path: ${{ matrix.path }}
+          target: ${{ matrix.target }}
+          tag_with_sha: true
+          push: false
+
+  smoke-tests:
+    name: Smoke Tests
+    runs-on: ${{ matrix.os }}
+    needs: [build, binary, unit-tests]
+    if: github.repository == 'nginxinc/kubernetes-ingress
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-18.04
+            path: build
+            file: Dockerfile
+            image: nginx-ingress
+            tag: ${{ github.sha }}
+            marker: 'ingresses'
+            type: oss
+          - os: ubuntu-18.04
+            path: build
+            file: Dockerfile
+            image: nginx-ingress
+            tag: ${{ github.sha }}
+            marker: 'vsr'
+            type: oss
+          - os: ubuntu-18.04
+            path: build
+            file: Dockerfile
+            image: nginx-ingress
+            tag: ${{ github.sha }}
+            marker: 'vs'
+            type: oss
+          - os: ubuntu-18.04
+            path: build
+            file: Dockerfile
+            image: nginx-ingress
+            tag: ${{ github.sha }}
+            marker: 'policies'
+            type: oss
+          - os: ubuntu-18.04
+            path: build
+            file: DockerfileForPlus
+            image: nginx-plus-ingress
+            tag: ${{ github.sha }}
+            marker: 'ingresses'
+            type: plus
+          - os: ubuntu-18.04
+            path: build
+            file: DockerfileForPlus
+            image: nginx-plus-ingress
+            tag: ${{ github.sha }}
+            marker: 'vsr'
+            type: plus
+          - os: ubuntu-18.04
+            path: build
+            file: DockerfileForPlus
+            image: nginx-plus-ingress
+            tag: ${{ github.sha }}
+            marker: 'vs'
+            type: plus
+          - os: ubuntu-18.04
+            path: build
+            file: DockerfileForPlus
+            image: nginx-plus-ingress
+            tag: ${{ github.sha }}
+            marker: 'policies'
+            type: plus
+          - os: ubuntu-18.04
+            path: build/appprotect
+            file: DockerfileWithAppProtectForPlus
+            image: nginx-plus-ingress
+            tag: ${{ github.sha }}-ap
+            marker: 'appprotect'
+            type: plus-ap
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Fetch N+ Certificates
+        if: matrix.type == 'plus'
+        env:
+          CRT: ${{ secrets.NGINX_CRT }}
+          KEY: ${{ secrets.NGINX_KEY }}
+        run: |
+          echo "${CRT}" | base64 --decode > nginx-repo.crt
+          echo "${KEY}" | base64 --decode > nginx-repo.key
+      - name: Fetch N+ AppProtect Certificates
+        if: matrix.type == 'plus-ap'
+        env:
+          CRT: ${{ secrets.NGINX_AP_CRT }}
+          KEY: ${{ secrets.NGINX_AP_KEY }}
+        run: |
+          echo "${CRT}" | base64 --decode > nginx-repo.crt
+          echo "${KEY}" | base64 --decode > nginx-repo.key
+      - name: Build Test Container
+        run: docker build -t test-runner:${{ matrix.tag }} -f tests/docker/Dockerfile .
+      - name: Build ${{ matrix.image }} Container
+        run: |
+          make container BUILD_IN_CONTAINER=1 DOCKERFILEPATH=${{ matrix.path }} \
+          DOCKERFILE=${{ matrix.file }} PREFIX=${{ matrix.image }} TAG=${{ matrix.tag }}
+      - name: Deploy Kubernetes
+        id: k8s
+        run: |
+          kind create cluster --name ${{ github.run_id }} --kubeconfig kube-${{ github.run_id }} --wait ${{ env.K8S_TIMEOUT }}
+          kind load docker-image ${{ matrix.image }}:${{ matrix.tag }} --name ${{ github.run_id }}
+          echo ::set-output name=cluster_ip::$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${{ github.run_id }}-control-plane)
+          echo ::set-output name=cluster::$(echo 'nginx-${{ matrix.type }}-${{ matrix.marker }}')
+      - name: Setup Kubeconfig
+        run: |
+          sed -i 's|server:.*|server: https://${{ steps.k8s.outputs.cluster_ip }}:6443|' kube-${{ github.run_id }}
+      - name: Run Smoke Tests
+        run: |
+          touch tests-${{ steps.k8s.outputs.cluster }}.xml
+          docker run --rm \
+          --name test-runner-${{ github.run_id }} \
+          --network=kind \
+          -v ${{ github.workspace }}/tests/tests-${{ steps.k8s.outputs.cluster }}.xml:/workspace/tests/tests-${{ steps.k8s.outputs.cluster }}.xml \
+          -v ${{ github.workspace }}/kube-${{ github.run_id }}:/root/.kube/config test-runner:${{ matrix.tag }} \
+          --context=kind-${{ github.run_id }} \
+          --image=${{ matrix.image }}:${{ matrix.tag }} \
+          --image-pull-policy=Never \
+          --ic-type=${{ matrix.image }} \
+          --service=nodeport --node-ip=${{ steps.k8s.outputs.cluster_ip }} \
+          --junitxml=tests-${{ steps.k8s.outputs.cluster }}.xml \
+          -m ${{ matrix.marker }}
+        working-directory: ./tests
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-results-${{ steps.k8s.outputs.cluster }}
+          path: ${{ github.workspace }}/tests/tests-${{ steps.k8s.outputs.cluster }}.xml
+
+  job-failure:
+    name: Report Failures
+    runs-on: ubuntu-18.04
+    if: 
+      failure() && 
+      github.repository == 'nginxinc/kubernetes-ingress'
+    steps:
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@master
+        env:
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+          SLACK_COLOR: '#3278BD'
+          SLACK_ICON_EMOJI: ':github:'
+          SLACK_TITLE: Pipeline Failure
+          SLACK_MESSAGE: 'The pipeline has failed, please check the logs.'
+          SLACK_FOOTER: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+          SLACK_USERNAME: GitHub-Actions
+          SLACK_WEBHOOK: ${{ secrets.SLACK_HOOK }}
