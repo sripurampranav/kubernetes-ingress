@@ -295,12 +295,12 @@ jobs:
             image: nginx-ingress
             tag: ${{ github.sha }}
             type: oss
-          # - os: ubuntu-18.04
-          #   path: build
-          #   file: DockerfileForPlus
-          #   image: nginx-plus-ingress
-          #   tag: ${{ github.sha }}
-          #   type: plus
+          - os: ubuntu-18.04
+            path: build
+            file: DockerfileForPlus
+            image: nginx-plus-ingress
+            tag: ${{ github.sha }}
+            type: plus
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
