@@ -19,6 +19,9 @@ Take the steps below to create the Docker image that you'll use to deploy NGINX 
     ```
     Alternatively, if You are want to run on an [OpenShift](https://www.openshift.com/) cluster You can use the `DOCKERFILE=appprotect/DockerfileWithAppProtectForPlusForOpenShift` build parameter.
 
+    If you intend to use [external references](https://docs.nginx.com/nginx-app-protect/configuration/#external-references) in NGINX App Protect policies, You may want to provide a custom CA certificate to authenticate the hosting server.
+    In order to do that, place the *.crt file in the build/appprotect folder and uncomment the lines following this comment `#Uncomment the lines below if You want to install a custom CA certificate`     
+
 - [Push the image to your local Docker registry](/nginx-ingress-controller/installation/building-ingress-controller-image/#building-the-image-and-pushing-it-to-the-private-registry).
 
 ## Install the Ingress Controller
