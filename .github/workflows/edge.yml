@@ -334,6 +334,7 @@ jobs:
       - name: Expose Test Ingresses
         run: |
           kubectl describe pod -l app=${{ matrix.type }}-nginx-ingress
+          kubectl logs -l app=${{ matrix.type }}-nginx-ingress
           kubectl port-forward service/${{ matrix.type }}-nginx-ingress 8080:80 &
           kubectl port-forward service/${{ matrix.type }}-nginx-ingress 8443:443 &
       - name: Test HTTP
