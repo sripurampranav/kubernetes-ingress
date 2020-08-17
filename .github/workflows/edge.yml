@@ -316,7 +316,6 @@ jobs:
         run: |
           make container BUILD_IN_CONTAINER=1 DOCKERFILEPATH=${{ matrix.path }} \
           DOCKERFILE=${{ matrix.file }} PREFIX=${{ matrix.image }} TAG=${{ matrix.tag }}
-          docker run ${{ matrix.image }}:${{ matrix.tag }} || true
       - name: Deploy Kubernetes
         id: k8s
         run: |
@@ -330,10 +329,11 @@ jobs:
           --set controller.image.repository=${{ matrix.image }}
           --set controller.image.tag=${{ matrix.tag }}
           --set controller.service.type=NodePort
-          --wait --debug
+          # --wait
         working-directory: ${{ github.workspace }}/deployments/helm-chart
       - name: Expose Test Ingresses
         run: |
+          kubectl describe pod -l app=${{ matrix.type }}-nginx-ingress
           kubectl port-forward service/${{ matrix.type }}-nginx-ingress 8080:80 &
           kubectl port-forward service/${{ matrix.type }}-nginx-ingress 8443:443 &
       - name: Test HTTP
