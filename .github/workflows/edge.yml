@@ -329,7 +329,7 @@ jobs:
           --set controller.image.repository=${{ matrix.image }}
           --set controller.image.tag=${{ matrix.tag }}
           --set controller.service.type=NodePort
-          --wait
+          --wait --debug
         working-directory: ${{ github.workspace }}/deployments/helm-chart
       - name: Expose Test Ingresses
         run: |
