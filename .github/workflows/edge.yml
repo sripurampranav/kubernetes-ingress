@@ -316,7 +316,7 @@ jobs:
         run: |
           make container BUILD_IN_CONTAINER=1 DOCKERFILEPATH=${{ matrix.path }} \
           DOCKERFILE=${{ matrix.file }} PREFIX=${{ matrix.image }} TAG=${{ matrix.tag }}
-          docker run -it ${{ matrix.image }}:${{ matrix.tag }}
+          docker run ${{ matrix.image }}:${{ matrix.tag }} || true
       - name: Deploy Kubernetes
         id: k8s
         run: |
