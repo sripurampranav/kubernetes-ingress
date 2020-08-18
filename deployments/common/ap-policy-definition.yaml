@@ -259,7 +259,7 @@ spec:
                         type: object
                       type: array
                   type: object
-                blockingSettingsReference:
+                blockingSettingReference:
                   properties:
                     link:
                       pattern: ^http

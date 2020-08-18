@@ -32,7 +32,7 @@ The table below categorizes some potential problems with the Ingress Controller 
      - Too many Ingress Resources with App Protect enabled. Check the `NGINX fails to start/reload section <#nginx-fails-to-start-or-reload>`_ of the Known Issues. 
    * - Reload time.
      - The Ingress Controller NGINX Configuration timeout takes longer than usual.
-     - Check the HTTP resonse time to resources used in App Protect policy external references.
+     - Check the HTTP response time to resources used in App Protect policy external references.
      - The servers providing policy snippets have an increased response time due to load, or network Latency.      
 ```
 
@@ -108,10 +108,10 @@ This timeout should be more than enough to verify configurations. However, when 
 
 You can increase this timeout by setting the `nginx-reload-timeout` [cli-argument](/nginx-ingress-controller/configuration/global-configuration/command-line-arguments/#cmdoption-nginx-reload-timeout).
 
-If You are using external references in Your Nginx App Protect policies, verify if the servers hosting the referenced resources are available and that their response time is as short as possible (see next paragraph).
-If the references are not available during ingress controller startup the pod will fail to startup. In case the resources are not available during a reload, the relod will fail, and ingress controller will process traffic with the previous correct coonfiguration.
+If you are using external references in your Nginx App Protect policies, verify if the servers hosting the referenced resources are available and that their response time is as short as possible (see next paragraph).
+If the references are not available during ingress controller startup the pod will fail to startup. In case the resources are not available during a reload, the reload will fail, and ingress controller will process traffic with the previous correct configuration.
 
-### Check the HTTP resonse time to resources used in App Protect policy external references.
+### Check the HTTP response time to resources used in App Protect policy external references.
 
 To check what servers host the external references: 
 ```
