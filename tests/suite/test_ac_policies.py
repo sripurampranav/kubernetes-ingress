@@ -56,7 +56,6 @@ def config_setup(request, kube_apis, ingress_controller_prerequisites) -> None:
             ingress_controller_prerequisites.namespace,
             std_cm_src,
         )
-
     request.addfinalizer(fin)
 
 
@@ -74,7 +73,7 @@ def config_setup(request, kube_apis, ingress_controller_prerequisites) -> None:
     ],
     indirect=True,
 )
-class TestAccessControlPolicies:
+class TestAccessControlPoliciesVs:
     def restore_default_vs(self, kube_apis, virtual_server_setup) -> None:
         """
         Restore VirtualServer without policy spec
@@ -88,6 +87,7 @@ class TestAccessControlPolicies:
         wait_before_test()
 
     @pytest.mark.parametrize("src", [deny_vs_src, deny_vs_src_route])
+    @pytest.mark.smoke
     def test_deny_policy(
         self,
         kube_apis,
@@ -356,8 +356,7 @@ class TestAccessControlPolicies:
             vs_info["status"]["state"] == "Warning"
             and vs_info["status"]["reason"] == "UpdatedWithWarning"
         )
-    
-    @pytest.mark.test
+
     def test_route_override_spec(
         self,
         kube_apis,
@@ -380,14 +379,15 @@ class TestAccessControlPolicies:
         deny_pol_name = create_policy_from_yaml(kube_apis.custom_objects, deny_pol_src, test_namespace)
         print(f"Create allow policy")
         allow_pol_name = create_policy_from_yaml(kube_apis.custom_objects, allow_pol_src, test_namespace)
+
         patch_virtual_server_from_yaml(
             kube_apis.custom_objects,
             virtual_server_setup.vs_name,
             override_vs_spec_route_src,
             virtual_server_setup.namespace,
         )
-
         wait_before_test()
+
         print(f"Use IP listed in both deny and allow policies: 10.0.0.1")
         resp = requests.get(
             virtual_server_setup.backend_1_url,
@@ -395,8 +395,8 @@ class TestAccessControlPolicies:
         )
         print(f"Response: {resp.status_code}\n{resp.text}")
 
+        self.restore_default_vs(kube_apis, virtual_server_setup)
         delete_policy(kube_apis.custom_objects, deny_pol_name, test_namespace)
         delete_policy(kube_apis.custom_objects, allow_pol_name, test_namespace)
-        self.restore_default_vs(kube_apis, virtual_server_setup)
 
         assert resp.status_code == 200 and "Server address:" in resp.text
